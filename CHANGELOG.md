@@ -14,7 +14,8 @@
 ### Validation
 
 - Seven offline pytest regressions fail on the unchanged v2.4.13 runtime and pass with this hotfix; the full Python suite passes (44 tests). Regressions exercise system/user-assigned identity initialization and actual index-state, replacement-delete, and purge query behavior with mocked Azure clients.
-- No Azure validation has been performed for this prerelease. Elevated reads originally prevented partial index-state reads with `permissionFilterOption` enabled; omitting the header can reintroduce incomplete state and unnecessary re-indexing. This is not a fix for protected ACL indexes. Controlled Azure tests must gate publishing.
+- **Controlled Azure Blob validation passed.** Using the ingestion system identity and an isolated index with the deployed `permissionFilterOption=disabled` policy, scans matched all seeded user/group/RBAC-bearing records. The first run indexed one new file and skipped four unchanged files; the repeat skipped all five with no uploads or failures. Purge removed exactly the one chunk for the deliberately deleted control blob and preserved all four survivors, vectors and permission metadata. The original application image/configuration was restored and the original index remained unchanged.
+- **Validation provenance and limits.** The built image passed all 44 tests with networking disabled; live Azure execution used runtime commit `222b6b137a671683eed80739d32e64583acaef5a`. Subsequent release changes document these results only. Fixture processes used an existing OpenAI account endpoint override and a prewarmed tokenizer cache, without changing cloud configuration. This validation does not establish authorization enforcement or support for `permissionFilterOption=enabled`; elevated reads originally prevented partial index-state reads in that mode.
 
 ## [v2.4.13] - 2026-06-19
 
