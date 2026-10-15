@@ -1,6 +1,20 @@
 # Changelog
 
-## [Unreleased]
+## [v2.4.13-hotfix.1] - 2026-10-15
+
+### Changed
+
+- **Exact v2.4.13 base.** Based on commit `d6f1ae490af11df41d52538fbf4b5d9553dce596`; intentionally excludes v2.4.14 and all later changes.
+- **Blob service-side queries omit elevated read.** Empty the shared header mapping in `jobs/blob_storage_indexer.py`, retaining its references and Search API version `2025-11-01-preview`. Other helpers with elevated-read headers are unchanged.
+
+### Fixed
+
+- **Purge client initialization.** Load application configuration in `BlobStorageDeletedItemsCleaner.__init__` before identity resolution, avoiding the missing `_app` AttributeError with default or explicit indexer configuration.
+
+### Validation
+
+- Seven offline pytest regressions fail on the unchanged v2.4.13 runtime and pass with this hotfix; the full Python suite passes (44 tests). Regressions exercise system/user-assigned identity initialization and actual index-state, replacement-delete, and purge query behavior with mocked Azure clients.
+- No Azure validation has been performed for this prerelease. Elevated reads originally prevented partial index-state reads with `permissionFilterOption` enabled; omitting the header can reintroduce incomplete state and unnecessary re-indexing. This is not a fix for protected ACL indexes. Controlled Azure tests must gate publishing.
 
 ## [v2.4.13] - 2026-06-19
 

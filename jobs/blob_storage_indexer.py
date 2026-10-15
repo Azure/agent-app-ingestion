@@ -28,8 +28,8 @@ from chunking import DocumentChunker
 from chunking.chunker_factory import ChunkerFactory
 from utils.file_utils import _safe_delete
 
-# Elevated-read header – bypasses permission filtering for service-side queries.
-_ELEVATED_HEADERS = {"x-ms-enable-elevated-read": "true"}
+# Retain service-side query header plumbing without requesting elevated reads.
+_ELEVATED_HEADERS = {}
 _ELEVATED_API_VERSION = "2025-11-01-preview"
 
 # -----------------------------------------------------------------------------
@@ -1603,6 +1603,7 @@ class BlobStorageDocumentIndexer:
 class BlobStorageDeletedItemsCleaner:
     def __init__(self, cfg: Optional[BlobIndexerConfig] = None):
         self.cfg = cfg or BlobIndexerConfig.from_app_config()
+        self._app = get_config()
         self._credential: Optional[ChainedTokenCredential] = None
         self._blob_service: Optional[BlobServiceClient] = None
         self._search_client: Optional[AsyncSearchClient] = None
