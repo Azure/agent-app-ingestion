@@ -1,6 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [v3.1.2] - 2026-10-27
+
+### Changed
+
+- **Service configuration label compatibility.** Read `agent-app-ingestion`
+  after the legacy `gpt-rag-ingestion` service label, retaining `agent-lz` and
+  the existing final all-labels selector. Existing service-label settings
+  remain supported.
+- **Agent Landing Zone service identity.** Align API metadata, service
+  identification and document-analysis user agents with the current product
+  names without changing routes, audit schemas or document payloads.
 
 ### Fixed
 

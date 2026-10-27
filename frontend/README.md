@@ -1,50 +1,30 @@
-# React + TypeScript + Vite
+# Ingestion operator dashboard development
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This React/TypeScript dashboard belongs to the ingestion service, not a
+separately deployed chat UI. Use Node 22, as in this repository's CI.
 
-Currently, two official plugins are available:
+From this directory:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```text
+npm ci
+npm run dev
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+The Vite development server proxies `/api` to `http://localhost:8080`.
+Start the backend separately using the [service README](../README.md) and
+review its scheduling and authorization warnings first. The proxy does not
+start a backend, provision resources, or bypass its authorization.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+The maintained offline validation commands are:
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```text
+npm test
+npm run lint
+npm run build
 ```
+
+The build writes to `../static`, which FastAPI can serve at `/dashboard`
+when the administrative surface is mounted. Runtime mode gates and API
+contracts are described in the [runtime guide](../docs/runtime.md).
+Product deployment remains in the
+[central documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/).
