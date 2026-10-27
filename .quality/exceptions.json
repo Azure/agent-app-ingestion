@@ -314,23 +314,6 @@
       "review_by_stage": "initial"
     },
     {
-      "id": "sharepoint-run-failure-observation",
-      "module_id": "jobs.sharepoint_indexer",
-      "symbol": "SharePointIndexer._run_pipeline",
-      "handler_fingerprint": "db49e21755ec02b963f00bf183190e826369bec3e186f2c2bad75ae90269d19a",
-      "caught_types": ["Exception"],
-      "boundary": "SharePoint run failed-summary observation followed by exception propagation",
-      "reason": "A failed collection must mark the run failed and propagate to the scheduler/audit wrapper, not become a finished run with zero failed items. The handler preserves the existing summary schema with safe error text, then re-raises. Its outer resource guard closes clients on configuration, collection and cancellation paths.",
-      "failure_outcome": "explicit-failure-translation",
-      "diagnostic_path": "Failed terminal summary, safe run error and original exception propagation",
-      "evidence_tests": [
-        "tests/test_sharepoint_failure_boundaries.py::test_sharepoint_run_propagates_failures_and_always_closes[configuration]",
-        "tests/test_sharepoint_failure_boundaries.py::test_sharepoint_run_propagates_failures_and_always_closes[collection]"
-      ],
-      "review": {"status": "active", "reference": "https://github.com/Azure/GPT-RAG/issues/681#issuecomment-5601804634"},
-      "review_by_stage": "initial"
-    },
-    {
       "id": "sharepoint-summary-best-effort",
       "module_id": "jobs.sharepoint_indexer",
       "symbol": "SharePointIndexer._write_run_summary_safely",
@@ -341,25 +324,6 @@
       "failure_outcome": "contractual-best-effort-side-effect",
       "diagnostic_path": "Safe summary failure/timeout warning; primary exception remains authoritative",
       "evidence_tests": ["tests/test_sharepoint_failure_boundaries.py::test_optional_summary_failure_preserves_primary_exception"],
-      "review": {"status": "active", "reference": "https://github.com/Azure/GPT-RAG/issues/681#issuecomment-5601804634"},
-      "review_by_stage": "initial"
-    },
-    {
-      "id": "sharepoint-item-failure",
-      "module_id": "jobs.sharepoint_indexer",
-      "symbol": "SharePointIndexer._process_collection.worker",
-      "handler_fingerprint": "6a5e6b398d3dcba804b8825b7bbfe04003fe9e2c1e99d1bd05b0284bf8828013",
-      "caught_types": ["Exception"],
-      "boundary": "SharePoint per-item processing failure, retry/block state and failed-count translation",
-      "reason": "The existing per-item boundary must record explicit failed items while siblings proceed. Permission acquisition now occurs within this bounded operation, so its failure records an error and cannot create empty ACLs or unobserved task exceptions. Failures before this boundary propagate through observed collection tasks; cancellation is not converted into a file success.",
-      "failure_outcome": "explicit-failure-translation",
-      "diagnostic_path": "Safe per-file error, failed item counter and no Search operation after ACL failure",
-      "evidence_tests": [
-        "tests/test_sharepoint_failure_boundaries.py::test_collection_observes_item_failures_instead_of_finishing_empty[acl]",
-        "tests/test_sharepoint_failure_boundaries.py::test_collection_observes_item_failures_instead_of_finishing_empty[lookup]",
-        "tests/test_sharepoint_failure_boundaries.py::test_collection_failure_cancels_and_observes_its_children[late-page]",
-        "tests/test_sharepoint_failure_boundaries.py::test_collection_failure_cancels_and_observes_its_children[timeout]"
-      ],
       "review": {"status": "active", "reference": "https://github.com/Azure/GPT-RAG/issues/681#issuecomment-5601804634"},
       "review_by_stage": "initial"
     },
