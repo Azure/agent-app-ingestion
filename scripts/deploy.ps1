@@ -178,6 +178,19 @@ function Get-RequiredConfigValue {
     return $value
 }
 
+function Get-ApplicationResourceGroup {
+    $output = @(& az appconfig kv list --endpoint $APP_CONFIG_ENDPOINT `
+        --key AZURE_APP_RESOURCE_GROUP --label agent-lz --auth-mode login `
+        --only-show-errors --query '[].value' --output tsv)
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Cannot read AZURE_APP_RESOURCE_GROUP; check App Configuration access. No legacy fallback was attempted.'
+    }
+    if ($output.Count -gt 1) { throw 'Application resource group must have one configuration value.' }
+    $group = if ($output.Count) { "$($output[0])".Trim() } else { '' }
+    if ($group) { return $group }
+    return Get-RequiredConfigValue -Key 'AZURE_RESOURCE_GROUP'
+}
+
 function Test-DockerReady {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
     $output = & docker info 2>&1
@@ -241,7 +254,7 @@ function Set-ContainerAppRegistry {
     $identityOutput = Invoke-ExternalCommand -FilePath 'az' -Arguments @(
         'containerapp','identity','show',
         '--name',$AppName,
-        '--resource-group',$Values.AZURE_RESOURCE_GROUP,
+        '--resource-group',$Values.AZURE_APP_RESOURCE_GROUP,
         '--only-show-errors',
         '--query','type','-o','tsv'
     ) -What 'fetch container app identity'
@@ -252,7 +265,7 @@ function Set-ContainerAppRegistry {
             Write-ErrorColored 'SUBSCRIPTION_ID and RESOURCE_TOKEN are required for user-assigned registry identity.'
             exit 1
         }
-        $registryIdentity = "/subscriptions/$($Values.SUBSCRIPTION_ID)/resourceGroups/$($Values.AZURE_RESOURCE_GROUP)/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-ca-$($Values.RESOURCE_TOKEN)-$identitySuffix"
+        $registryIdentity = "/subscriptions/$($Values.SUBSCRIPTION_ID)/resourceGroups/$($Values.AZURE_APP_RESOURCE_GROUP)/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-ca-$($Values.RESOURCE_TOKEN)-$identitySuffix"
     } else {
         $registryIdentity = 'system'
     }
@@ -260,7 +273,7 @@ function Set-ContainerAppRegistry {
     Invoke-ExternalCommand -FilePath 'az' -Arguments @(
         'containerapp','registry','set',
         '--name',$AppName,
-        '--resource-group',$Values.AZURE_RESOURCE_GROUP,
+        '--resource-group',$Values.AZURE_APP_RESOURCE_GROUP,
         '--server',$Values.CONTAINER_REGISTRY_LOGIN_SERVER,
         '--identity',$registryIdentity,
         '--only-show-errors'
@@ -341,7 +354,7 @@ Write-Blue "Loading App Configuration settings (labels=$($labels -join ', '))...
 $values = @{
     CONTAINER_REGISTRY_NAME = (Get-RequiredConfigValue -Key 'CONTAINER_REGISTRY_NAME')
     CONTAINER_REGISTRY_LOGIN_SERVER = (Get-RequiredConfigValue -Key 'CONTAINER_REGISTRY_LOGIN_SERVER')
-    AZURE_RESOURCE_GROUP = (Get-RequiredConfigValue -Key 'AZURE_RESOURCE_GROUP')
+    AZURE_APP_RESOURCE_GROUP = (Get-ApplicationResourceGroup)
     APP_NAME = (Get-RequiredConfigValue -Key $appConfigKey)
     SUBSCRIPTION_ID = (Get-ConfigValue -Key 'SUBSCRIPTION_ID')
     RESOURCE_TOKEN = (Get-ConfigValue -Key 'RESOURCE_TOKEN')
@@ -354,12 +367,12 @@ if ([string]::IsNullOrWhiteSpace($values.SUBSCRIPTION_ID)) {
 Write-Green 'All App Configuration values retrieved:'
 Write-Host ("   CONTAINER_REGISTRY_NAME = {0}" -f $values.CONTAINER_REGISTRY_NAME)
 Write-Host ("   CONTAINER_REGISTRY_LOGIN_SERVER = {0}" -f $values.CONTAINER_REGISTRY_LOGIN_SERVER)
-Write-Host ("   AZURE_RESOURCE_GROUP = {0}" -f $values.AZURE_RESOURCE_GROUP)
+Write-Host ("   AZURE_APP_RESOURCE_GROUP = {0}" -f $values.AZURE_APP_RESOURCE_GROUP)
 Write-Host ("   APP_NAME = {0}" -f $values.APP_NAME)
 
 if ($buildMode -eq 'local') {
-    Write-Blue ("Logging into ACR ({0} in {1})..." -f $values.CONTAINER_REGISTRY_NAME, $values.AZURE_RESOURCE_GROUP)
-    Invoke-ExternalCommand -FilePath 'az' -Arguments @('acr','login','--name',$values.CONTAINER_REGISTRY_NAME,'--resource-group',$values.AZURE_RESOURCE_GROUP) -What 'ACR login' | Out-Null
+    Write-Blue ("Logging into ACR ({0} in {1})..." -f $values.CONTAINER_REGISTRY_NAME, $values.AZURE_APP_RESOURCE_GROUP)
+    Invoke-ExternalCommand -FilePath 'az' -Arguments @('acr','login','--name',$values.CONTAINER_REGISTRY_NAME,'--resource-group',$values.AZURE_APP_RESOURCE_GROUP) -What 'ACR login' | Out-Null
     Write-Green 'Logged into ACR.'
 } else {
     Write-Green 'Using remote ACR build; local Docker login is not required.'
@@ -379,7 +392,7 @@ if ($buildMode -eq 'local') {
     Write-Blue 'Building image remotely via az acr build...'
     $acrBuildArgs = @('acr','build','--registry',$values.CONTAINER_REGISTRY_NAME,'--image',"azure-gpt-rag/${imageRepository}:$tag",'--file','Dockerfile','--no-logs')
     if ($env:ACR_TASK_AGENT_POOL) {
-        Invoke-ExternalCommand -FilePath 'az' -Arguments @('acr','agentpool','show','--registry',$values.CONTAINER_REGISTRY_NAME,'--name',$env:ACR_TASK_AGENT_POOL,'--resource-group',$values.AZURE_RESOURCE_GROUP,'--only-show-errors') -What 'validate ACR task agent pool' | Out-Null
+        Invoke-ExternalCommand -FilePath 'az' -Arguments @('acr','agentpool','show','--registry',$values.CONTAINER_REGISTRY_NAME,'--name',$env:ACR_TASK_AGENT_POOL,'--resource-group',$values.AZURE_APP_RESOURCE_GROUP,'--only-show-errors') -What 'validate ACR task agent pool' | Out-Null
         $acrBuildArgs += @('--agent-pool',$env:ACR_TASK_AGENT_POOL)
     }
     $acrBuildArgs += '.'
@@ -395,7 +408,7 @@ Write-Blue 'Updating container app image...'
 $latestRevisionOutput = Invoke-ExternalCommand -FilePath 'az' -Arguments @(
     'containerapp','update',
     '--name',$values.APP_NAME,
-    '--resource-group',$values.AZURE_RESOURCE_GROUP,
+    '--resource-group',$values.AZURE_APP_RESOURCE_GROUP,
     '--image',$fullImageName,
     '--only-show-errors',
     '--query','properties.latestRevisionName','-o','tsv'
@@ -410,12 +423,12 @@ Write-Blue 'Ensuring container app ingress target port is 8080...'
 Invoke-ExternalCommand -FilePath 'az' -Arguments @(
     'containerapp','ingress','update',
     '--name',$values.APP_NAME,
-    '--resource-group',$values.AZURE_RESOURCE_GROUP,
+    '--resource-group',$values.AZURE_APP_RESOURCE_GROUP,
     '--target-port','8080',
     '--only-show-errors'
 ) -What 'update container app ingress' | Out-Null
 Write-Green 'Ingress target port updated.'
 
 Write-Blue 'Verifying container app image...'
-Confirm-ContainerAppImage -AppName $values.APP_NAME -ResourceGroupName $values.AZURE_RESOURCE_GROUP -ExpectedImage $fullImageName
+Confirm-ContainerAppImage -AppName $values.APP_NAME -ResourceGroupName $values.AZURE_APP_RESOURCE_GROUP -ExpectedImage $fullImageName
 Write-Green 'Container app image verified.'
