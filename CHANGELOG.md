@@ -1,5 +1,24 @@
 # Changelog
 
+## [v3.1.2] - 2026-10-27
+
+### Changed
+
+- **Service configuration label compatibility.** Read `agent-app-ingestion`
+  after the legacy `gpt-rag-ingestion` service label, retaining `agent-lz` and
+  the existing final all-labels selector. Existing service-label settings
+  remain supported.
+- **Agent Landing Zone service identity.** Align API metadata, service
+  identification and document-analysis user agents with the current product
+  names without changing routes, audit schemas or document payloads.
+
+### Fixed
+
+- **Application resource-group targeting.** Resolve Container Apps, registry
+  operations and deployment identities from `AZURE_APP_RESOURCE_GROUP` under
+  `agent-lz`. Confirmed missing or empty values retain the legacy
+  `AZURE_RESOURCE_GROUP` fallback; configuration access failures stop deployment.
+
 ## [v3.1.1] - 2026-10-06
 
 The `v3.1.0` tag was created before this change merged and does not contain it.

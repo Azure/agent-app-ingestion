@@ -145,6 +145,26 @@ require_config_value() {
   printf "%s" "$value"
 }
 
+get_application_resource_group() {
+  local group
+  group="$(az appconfig kv list --endpoint "$APP_CONFIG_ENDPOINT" \
+    --key AZURE_APP_RESOURCE_GROUP --label agent-lz --auth-mode login \
+    --only-show-errors --query '[].value' --output tsv)" || {
+    error "Cannot read AZURE_APP_RESOURCE_GROUP; check App Configuration access. No legacy fallback was attempted."
+    return 1
+  }
+  group="$(printf "%s" "$group" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  if [[ "$group" == *$'\n'* ]]; then
+    error "Application resource group must have one configuration value."
+    return 1
+  fi
+  if [[ -n "$group" ]]; then
+    printf "%s" "$group"
+  else
+    require_config_value "AZURE_RESOURCE_GROUP"
+  fi
+}
+
 docker_ready() {
   command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
 }
@@ -305,7 +325,7 @@ success "Build mode: ${buildMode}"
 info "Loading App Configuration settings (labels=${config_labels[*]})..."
 containerRegistryName="$(require_config_value "CONTAINER_REGISTRY_NAME")"
 containerRegistryLoginServer="$(require_config_value "CONTAINER_REGISTRY_LOGIN_SERVER")"
-resourceGroupName="$(require_config_value "AZURE_RESOURCE_GROUP")"
+resourceGroupName="$(get_application_resource_group)"
 appName="$(require_config_value "$appConfigKey")"
 subscriptionId="$(get_config_value "SUBSCRIPTION_ID" || az account show --only-show-errors --query id -o tsv 2>&1 | select_cli_value)"
 resourceToken="$(get_config_value "RESOURCE_TOKEN" || true)"

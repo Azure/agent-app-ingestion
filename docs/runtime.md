@@ -3,8 +3,8 @@
 Return to the [service README](../README.md). Shared deployment and topology
 belong in the [central documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/)
 and its [main-branch source](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone).
-Unless marked otherwise, these notes apply to pinned `v3.1.1` and repository
-`main`. They do not document unmerged `develop` features.
+Unless marked as historical behavior, these notes describe `v3.1.2`.
+Use the platform release manifest for the compatible component combination.
 
 ## Configuration and identity
 
@@ -19,10 +19,10 @@ automatic prefix alias. Selector order differs between revisions:
 
 | Revision | Selectors, earliest to latest |
 | --- | --- |
-| Pinned `v3.1.1` | `gpt-rag-ingestion`, `agent-lz`, all labels (`label_filter=None`) |
-| Repository `main` after the pin | `gpt-rag-ingestion`, `agent-app-ingestion`, `agent-lz`, all labels (`label_filter=None`) |
+| `v3.1.1` | `gpt-rag-ingestion`, `agent-lz`, all labels (`label_filter=None`) |
+| `v3.1.2` | `gpt-rag-ingestion`, `agent-app-ingestion`, `agent-lz`, all labels (`label_filter=None`) |
 
-Pinned `v3.1.1` requires `azure-appconfiguration-provider==2.5.0` and
+Both revisions require `azure-appconfiguration-provider==2.5.0` and
 `azure-appconfiguration==1.8.1`. The provider's default when the label argument
 is omitted is `"\0"`, which selects only unlabelled settings. This service
 instead passes explicit `None`. The
@@ -40,7 +40,7 @@ result ordering across labels as an explicit operator override policy.
 Operator configuration writes default to `agent-lz`, configurable through
 the process variable `APP_CONFIG_LABEL`. Confirm the effective read value
 after a write and avoid conflicting same-key values across labels.
-Do not rely on the new service label with the platform-pinned image.
+The legacy `v3.1.1` image does not read the `agent-app-ingestion` service label.
 Narrowing the final selector would require a separately reviewed runtime
 change, not a documentation edit.
 
@@ -247,7 +247,7 @@ configuration recovery.
 
 ## Component image build selection
 
-The shipped `v3.1.1` [PowerShell](../scripts/deploy.ps1) and
+The `v3.1.2` [PowerShell](../scripts/deploy.ps1) and
 [Bash](../scripts/deploy.sh) hooks accept only `BUILD_MODE=local` or
 `BUILD_MODE=acr-task`, normalized for case and surrounding whitespace.
 Selection when unset is conditional, not always remote:
@@ -272,3 +272,8 @@ Local builds target `linux/amd64` and push to ACR. `acr-task` invokes
 `ACR_TASK_AGENT_POOL` or fails. These hooks assume platform-provisioned
 resources. They do not infer that a parent predeploy log message set a
 build-mode variable.
+
+Deployment destinations use `AZURE_APP_RESOURCE_GROUP` from App Configuration
+under `agent-lz`. Only a successful missing or empty read falls back to
+`AZURE_RESOURCE_GROUP` for older environments. Configuration access failures
+or multiple destination values stop deployment rather than select another group.

@@ -33,12 +33,10 @@ not execute conversational agents or store their full chat history.
 - [Contributor quality commands](docs/python-quality.md) and
   [operator dashboard development](frontend/README.md) cover local engineering.
 
-Agent Landing Zone `4.3.0` pins
-[`v3.1.1`](https://github.com/Azure/agent-app-ingestion/tree/v3.1.1)
-at `72efd8d7d51e10d38bf8b89f03b7eb42e1ed8ff2`. Repository `main` also
-contains later naming and App Configuration label changes. The runtime guide
-marks the label difference explicitly. `main` or `develop` is not evidence
-that a change is in the platform's shipped image.
+Use the compatible component versions recorded in the
+[Agent Landing Zone release manifest](https://github.com/Azure/agent-landing-zone/blob/main/manifest.json).
+Selecting repository `main` or `develop` alone does not select the platform's
+validated release combination.
 
 ## Run this service locally
 
