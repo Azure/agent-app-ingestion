@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **SharePoint permission-only synchronization.** Refresh the supported Entra
+  user/group ACLs on every indexed item document and document-library chunk,
+  independently of content timestamps, without re-downloading or embedding
+  unchanged content. Document libraries read Graph's effective drive sharing
+  permissions, including inherited grants. Reconcile all permission pages,
+  replace revoked principals, skip equal ACLs, and confirm every Search merge.
+  Lookup and partial-update failures fail the job and remain retryable; content
+  retry blocking no longer prevents ACL refresh (Azure/agent-landing-zone#720).
+
 ## [v3.1.2] - 2026-10-27
 
 ### Changed

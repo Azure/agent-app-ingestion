@@ -149,6 +149,8 @@ class RunStats:
     items_discovered: int = 0
     items_candidates: int = 0
     items_indexed: int = 0
+    items_acl_updated: int = 0
+    acl_documents_updated: int = 0
     items_skipped_nochange: int = 0
     items_failed: int = 0
     items_skipped_blocked: int = 0
