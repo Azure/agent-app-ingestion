@@ -11,308 +11,81 @@ products:
 - azure-ai-search
 urlFragment: agent-app-ingestion
 name: Agent Landing Zone Data Ingestion
-description: Multimodal document and SharePoint ingestion service for Agent Landing Zone, indexing enterprise content into Azure AI Search for agentic RAG.
+description: Python document ingestion service that prepares grounding content for Azure AI Search.
 -->
 # Agent Landing Zone Data Ingestion
 
-Part of the [Agent Landing Zone](https://github.com/Azure/agent-landing-zone) solution.
+The Python 3.12 ingestion service for
+[Agent Landing Zone](https://github.com/Azure/agent-landing-zone). It chunks
+documents, generates embeddings, writes Azure AI Search content, and runs
+Blob, SharePoint, NL2SQL, and maintenance jobs. It also exposes ingestion APIs,
+an operator dashboard, and a separately gated hosted retrieval API. It does
+not execute conversational agents or store their full chat history.
 
-The **Agent Landing Zone Data Ingestion** service automates the processing of diverse document types—such as PDFs, images, spreadsheets, transcripts, and SharePoint files—preparing them for indexing in Azure AI Search. It uses intelligent chunking strategies tailored to each format, generates text and image embeddings, and enables rich, multimodal retrieval experiences for agent-based RAG applications.
+## Documentation and release scope
 
-For full documentation, visit the **[Agent Landing Zone documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/)**.
+- [Product documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/)
+  owns deployment topology and shared setup.
+- [Canonical documentation source](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
+  is on `Azure/AI-Landing-Zones` `main`, not a legacy documentation branch.
+- [Runtime, API, security, scheduling, and audit guide](docs/runtime.md)
+  covers this service.
+- [Contributor quality commands](docs/python-quality.md) and
+  [operator dashboard development](frontend/README.md) cover local engineering.
 
-## Contributor quality bootstrap
+Use the compatible component versions recorded in the
+[Agent Landing Zone release manifest](https://github.com/Azure/agent-landing-zone/blob/main/manifest.json).
+Selecting repository `main` or `develop` alone does not select the platform's
+validated release combination.
 
-Python 3.12 contributor commands, scheduler ownership, incremental typing,
-import/error policy and recovery guidance are in
-[Python quality gates](docs/python-quality.md). Every retained broad handler
-has an exact, individually justified record with failure evidence; **67 records
-are active under [explicit administrative initial-adoption approval](https://github.com/Azure/agent-landing-zone/issues/681#issuecomment-5601804634)**,
-not independent GitHub review. Bootstrap adoption, real reference validation
-and required-check activation remain separate acceptance steps.
-The operator frontend's dependency/build compatibility is repaired without
-peer-validation bypasses; CI runs its maintained test, lint and build commands
-on compatible Node 22 as a required aggregate dependency.
+## Run this service locally
 
-Search uploads/deletes, including direct `/ingest-documents`, require matching
-SDK confirmations. Blob/SharePoint permission failures cannot become empty ACLs;
-worker, provider and genuine configuration-application failures remain visible.
-Confirmed configuration writes retain **200/applied** if only the established
-best-effort local refresh fails. Selector order, configured source order,
-schema/audit bytes, authentication and successful per-record responses remain
-unchanged. Expected SDK/parser recovery is bounded; diagnostic payloads are safe.
+Obtain compatible infrastructure and a development App Configuration store
+through Agent Landing Zone first. This repository's Bicep file does not
+provision a standalone environment. The selected sources, models, storage,
+Search index, identities, and network access must already be configured.
 
-For App Configuration source order, environment opt-in, fallback diagnostics
-and recovery, see the canonical [ingestion observability guidance](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/operations/#monitoring).
+**Starting the service can write and delete data.** Startup jobs default to
+enabled, and cron scheduling remains active even when immediate startup jobs
+are disabled. Review the [scheduling defaults](docs/runtime.md#jobs-and-startup)
+before connecting to any environment.
 
-Image purging completes its reference scan before deleting anything, including
-references beyond 1,000 results, and uses asynchronous Blob operations.
-Source-page, count and unconfirmed-delete failures cannot become successful
-SharePoint purge summaries. Worker-owned resource cleanup is attempted on initialization,
-failure and cancellation paths; collection children are cancelled and observed.
-Optional audit/diagnostic failures do not authorize primary-operation success.
-Retrieval query failures retain their sanitized `502` response, and query
-cancellation propagates, even when Search cleanup fails. A cleanup failure
-without a prior query failure still propagates. Blob terminal-summary writes
-cannot replace an established run failure or cancellation; failed summary
-attempts emit class-only diagnostics. Neither summary persistence nor cleanup
-is guaranteed. NL2SQL child cancellation propagates through the run/audit
-wrapper rather than producing a finished run with an ordinary failed-document
-count; ordinary document errors retain their existing per-record behavior.
-Code or artifact rollback does not undo persisted configuration or restore
-deleted documents.
+From this repository's root, with Python 3.12 and Azure CLI installed, run:
 
-## Governance and audit events
-
-This service emits a versioned, correlated audit trail for ingestion runs and
-document outcomes, sharing the `audit-event-v2` contract owned by
-[`Azure/agent-landing-zone`](https://github.com/Azure/agent-landing-zone) (pinned by SHA-256 in
-[`contracts/`](contracts/) and consumed the same way by
-`agent-app-orchestrator`). Reuses the existing OpenTelemetry / Application
-Insights pipeline — no separate audit backend, queue, or export path is
-introduced.
-
-## Hosted retrieval through Foundry Toolbox
-
-`POST /retrieve` is a preview-only OpenAPI tool boundary for hosted mode. It is
-disabled by default and has no effect on classic ingestion. The request schema
-is intentionally small:
-
-```json
-{
-  "query": "bounded string, 1-1000 characters",
-  "top": "optional integer, 1-10; default 5"
-}
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+az login
+$env:APP_CONFIG_ENDPOINT = "https://<app-configuration-name>.azconfig.io"
+.\.venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8080
 ```
 
-Identity, groups, and index selection are not request fields. Configure the
-Toolbox connection for `UserEntraToken` identity passthrough so it sends a
-delegated bearer in `Authorization`. Configure the connection audience and
-`HOSTED_RETRIEVAL_TOKEN_AUDIENCE` to the same Azure AI Search query-token
-audience proven by INV-002. The service validates the signature, issuer, tenant,
-exact audience, expiry, delegated scope, identity type, and user object ID, then
-forwards the unchanged token to the configured `SEARCH_RAG_INDEX_NAME` through
-Azure AI Search's `x-ms-query-source-authorization` header. Never configure this
-tool with a static API key, project managed identity, caller-supplied object ID,
-or caller-supplied group list as the authorization boundary.
+These are service startup commands, not infrastructure deployment commands.
+See [configuration and identity](docs/runtime.md#configuration-and-identity)
+for RBAC, runtime values, and environment opt-in. `GET /healthz` and
+`GET /readyz` are process probes, not proof that a source was indexed.
 
-The feature requires both App Configuration settings below (label `agent-lz`):
+## Optional deployment
 
-| Setting | Default | Contract |
-| --- | --- | --- |
-| `HOSTED_RETRIEVAL_ENABLED` | `false` | Enables the hosted retrieval route. |
-| `HOSTED_RETRIEVAL_INV_002_VALIDATED` | `false` | Operator attestation that ADR-0001 INV-002 passed in an isolated non-production topology without a group-filter fallback. |
-| `HOSTED_RETRIEVAL_TOKEN_AUDIENCE` | unset | Exact audience accepted from the Toolbox `UserEntraToken` connection and forwarded unchanged to Search; record the validated value in INV-002. |
+The ingestion Container App is optional, independently of Container Apps or
+Foundry hosted orchestration. Fresh supported native Foundry IQ deployments
+default its platform deployment control to `false`. Existing and custom
+selections are preserved. Native Blob ingestion does not replace conversation
+attachments or all source types.
 
-Keep the second setting false until two users in different groups prove that a
-restricted user cannot retrieve another user's or group's content. The bounded
-INV-002 evidence must also record the Toolbox connection auth type and audience,
-the Search index permission-filter configuration, and the exact negative-test
-results. There is no manual user/group fallback in this service. Do not infer
-that a document is public from an empty user-ID field: Search evaluates user,
-group, and RBAC-scope permission fields independently. Only Search's native
-permission-filter semantics determine whether a document is public.
-
-Required access handoff:
-
-- Grant each end user the **Foundry User** role on the project for the
-  `UserEntraToken` identity-passthrough flow.
-- Grant the ingestion service managed identity **Search Index Data Reader** on
-  the configured Search service for query access. Existing ingestion deployments
-  may already hold the broader **Search Index Data Contributor** role for writes.
-- Enable native permission filters on the configured index fields for user IDs,
-  group IDs, and RBAC scope before setting the INV-002 gate.
-
-Failure contract: `401` for a missing/invalid bearer, `403` for a non-delegated
-or non-user token, `422` for schema/bounds violations, `500` for missing server
-configuration, `502` for Search failures, and `503` while hosted retrieval or
-the INV-002 evidence gate is disabled. Responses contain at most 10 results;
-content is capped at 8,000 characters per result, URLs at 2,048, titles at 512,
-and other string metadata at 256. Vectors, ACL fields, tokens, and raw
-authorization claims are never returned or logged.
-
-## Operator panel surfaces (overview metrics and corpus curation)
-
-The optional hosted administrative panel's ingestion-side operator surfaces
-(issue [Azure/agent-landing-zone#611](https://github.com/Azure/agent-landing-zone/issues/611),
-ADR-0004) expose `GET /panel/overview/metrics`,
-`GET /panel/corpus-curation/queue`, and
-`POST /panel/corpus-curation/{item_id}/decision`. These surfaces **never**
-read or expose Foundry managed Conversation message bodies and hold **no**
-Conversations data-plane access. The exact wire shapes are vendored from the
-shared platform contract at
-[`contracts/conversations-panel-v1.schema.json`](contracts/conversations-panel-v1.schema.json)
-(pinned by SHA-256 in [`contracts/conversations-panel-v1.sha256`](contracts/conversations-panel-v1.sha256),
-published by [Azure/agent-landing-zone PR #637](https://github.com/Azure/agent-landing-zone/pull/637)).
-
-- **Overview metrics** are aggregate-only `COUNT(1)` reads over the two panel
-  Cosmos containers this service holds container-scoped **Data Reader** on
-  (the owner-index and feedback metadata containers) — never a per-item
-  read. Every count bucket below `PANEL_OVERVIEW_MIN_CARDINALITY` (default
-  `5`) is suppressed as `null` rather than disclosing a small exact count.
-- **Corpus curation** reuses the *existing* per-file-log blob store this
-  service identity already owns and legitimately writes to (the same store
-  behind the classic dashboard's Files tab and `blocked`/`unblock` flow) —
-  never Cosmos, since this identity has no Cosmos write access for panel
-  data. A curation item is a blocked, undecided per-file log; a decision
-  (`approve`/`reject`/`defer` + an optional bounded note) is written with
-  Blob Storage's native ETag optimistic concurrency. Re-posting an identical
-  decision for an already-decided item is idempotent (returns the existing
-  outcome); a *conflicting* second decision is rejected (`422`) rather than
-  silently overwritten.
-- The curation queue's pagination cursor is opaque, HMAC-signed, expiring,
-  and bound to the calling operator's `oid` — never a raw offset or Search
-  continuation token — signed with the existing `DATA_INGEST_APP_APIKEY`
-  secret (no new Key Vault secret or RBAC introduced).
-
-All three endpoints are disabled by default and fail closed (`503`) unless
-every gate below is met (label `agent-lz` App Configuration keys):
-
-| Setting | Default | Contract |
-| --- | --- | --- |
-| `DEPLOY_ADMINISTRATIVE_PANEL` | `false` | Existing platform-owned panel topology flag ([Azure/agent-landing-zone PR #637](https://github.com/Azure/agent-landing-zone/pull/637)). |
-| `PANEL_OPERATOR_SURFACES_ENABLED` | `false` | Ingestion-owned gate for these three endpoints specifically. |
-| `PANEL_OPERATOR_APP_ROLE` | unset | Entra app role name a delegated operator token must carry. At least this or the group below must be set. |
-| `PANEL_OPERATOR_GROUP_ID` | unset | Entra group object id a delegated operator token's `groups` claim must carry. |
-| `PANEL_OVERVIEW_MIN_CARDINALITY` | `5` | Overview count-bucket suppression threshold (shared with the platform contract). |
-| `PANEL_CURSOR_TTL_SECONDS` | `600` | Curation queue cursor lifetime (shared with the platform contract). |
-
-Every request requires a validated delegated (per-user) bearer token carrying
-the configured operator role or group — an app-only (client-credentials)
-token is always rejected. Failure contract: `401` missing/invalid bearer,
-`403` app-only token or missing operator role/group, `404` curation item not
-found or not visible, `422` malformed `item_id`, a tampered/expired/
-cross-principal cursor, or a conflicting recorded decision, `502` a Cosmos or
-corpus-control-store failure, `503` any gate above unmet. Only correlation
-ids and coarse audit metadata (never tokens, queries, or document content)
-are logged.
-
-The classic Vite operator dashboard adds matching **Overview** and
-**Curation** tabs that render the exact error the backend returns (disabled,
-unauthenticated, forbidden, or downstream failure) rather than a fabricated
-success-shaped placeholder; all existing tabs are unchanged.
-
-### Event taxonomy
-
-This service emits exactly these seven event types (no aliases):
-
-| Event | When |
-| --- | --- |
-| `ingestion.run.started` | An ingestion job begins (blob index/purge, SharePoint index/purge, NL2SQL index/purge, multimodal image purge) |
-| `ingestion.run.completed` | The job finished without an unhandled or logged error |
-| `ingestion.run.failed` | The job caught and logged an error, or an exception escaped it |
-| `ingestion.run.cancelled` | The job's task was cancelled (e.g. container shutdown) |
-| `ingestion.document.indexed` | Azure AI Search confirmed a document upload succeeded |
-| `ingestion.document.rejected` | Azure AI Search confirmed a document upload failed |
-| `ingestion.document.deleted` | Azure AI Search confirmed a document deletion succeeded |
-
-Every ingestion run emits exactly one `started` event and exactly one
-terminal event. Document events carry the run's `correlation_id` as their
-own and the run's `started` event as their `parent_event_id`, so a run and
-its documents can be reconstructed from Application Insights without
-inspecting unrelated telemetry.
-
-Audit emission is **best-effort and never blocking**: a failure to build,
-sanitize, or export an audit event is logged as a warning and dropped — it
-never turns a successful index, delete, or run into a failure.
-
-### Querying events in Application Insights
-
-Events appear in the `customEvents` table. Filter the `name` column to find
-ingestion audit events:
-
-```kusto
-customEvents
-| where name startswith "agentlz.audit.ingestion"
-| project timestamp, name, tostring(customDimensions.event_id),
-    tostring(customDimensions.correlation_id),
-    tostring(customDimensions.parent_event_id),
-    tostring(customDimensions.source_type),
-    tostring(customDimensions.status)
-| order by timestamp desc
-```
-
-A `parent_event_id` value of
-`evt_00000000000000000000000000000000` represents a root event with no
-logical parent. Treat the sentinel as null when correlating events; do not
-attempt to join it as an event ID.
-
-### Provenance flags
-
-| Setting | Default | Effect |
-| --- | --- | --- |
-| `INGESTION_PROVENANCE_ENABLED` | `false` | When `true`, `ingestion.document.indexed`/`.deleted` events additionally carry `provenance_id`, `source_uri_id`, `source_version_id`, `content_checksum_sha256`, `ingested_at`, `ingest_run_id`, `data_classification`, `right_to_use`, and (when present on the document) `retention_class`/`delete_after`. When `false` (default), none of these fields are attached — this is the exact disabled behavior prior to this feature; the audit trail itself is unaffected. |
-| `INGESTION_REQUIRE_GOVERNANCE_METADATA` | `false` | Strict governance mode. Requires **both** `data_classification` and `right_to_use` to be explicitly present on the document; if either is missing, both fields are omitted from the event rather than filled in from the configured defaults — a default can never be reported as if it satisfied strict mode. **Invalid configuration:** setting this to `true` while `INGESTION_PROVENANCE_ENABLED=false` fails startup with an actionable error, since strict governance cannot be enforced when provenance capture itself is off. |
-| `INGESTION_DEFAULT_CLASSIFICATION` | `unclassified` | Fallback `data_classification` used only when provenance is enabled and strict governance is **not** required. |
-| `INGESTION_DEFAULT_RIGHT_TO_USE` | `not_asserted` | Fallback `right_to_use` used only when provenance is enabled and strict governance is **not** required. |
-
-Flag matrix:
-
-| `INGESTION_PROVENANCE_ENABLED` | `INGESTION_REQUIRE_GOVERNANCE_METADATA` | Result |
-| --- | --- | --- |
-| `false` | `false` | Default. Audit events emitted; no provenance fields. |
-| `true` | `false` | Provenance fields attached; classification/right-to-use fall back to the configured defaults when a document doesn't supply its own. |
-| `true` | `true` | Provenance fields attached; classification/right-to-use are only reported when the document explicitly supplies both — otherwise omitted. |
-| `false` | `true` | **Invalid.** Startup fails with an actionable error. |
-
-### Known limitations and evidence gaps
-
-- **`source_uri_id` and `source_version_id` are opaque, unsalted SHA-256
-  digests**, never the raw blob path, SharePoint URL, or filename. They are
-  deterministic (the same source always hashes the same way, which is what
-  makes correlation across events possible) but are **not** cryptographically
-  keyed — this repository has no existing HMAC/key-management convention, so
-  a plain digest is used instead. Do not treat these as secrets: a small,
-  known set of candidate paths could in principle be dictionary-matched
-  against the digest.
-- **`delete_after` is policy intent only.** Setting it on a document does not
-  schedule or trigger any automatic purge; only a confirmed deletion result
-  from Azure AI Search ever emits `ingestion.document.deleted`.
-- **Audit metadata and checksums can themselves be sensitive.** A content
-  checksum can reveal that two ingested documents are identical or
-  reveal document existence in an offline dictionary attack against a small
-  candidate set; apply the same access control to Application Insights as to
-  the ingested content itself.
-- **This audit trail does not, by itself, establish legal compliance** with
-  any regulatory framework; it provides technical evidence adopters can use
-  in their own governance and risk assessments.
-
-## Deployment modes and the administrative panel
-
-The Container App resolves a single deployment mode at startup from App
-Configuration (label `agent-lz`) and re-validates it on every restart —
-changing either flag below requires a restart to take effect:
-
-| Setting | Default | Effect |
-| --- | --- | --- |
-| `DEPLOY_HOSTED_AGENT_ORCHESTRATION` | `false` | `true` selects a hosted deployment (chat is served by Azure AI Foundry, not this Container App). `false` selects **classic** mode: full behavior is unchanged, the admin SPA (`/dashboard`) and jobs/schedules/files/config APIs are always mounted, exactly as in prior releases. |
-| `DEPLOY_ADMINISTRATIVE_PANEL` | `false` | Only consulted when hosted mode is selected. `false` is **hosted/no-panel**: the admin SPA and every admin/panel route are not mounted at all (404), and no panel-only Cosmos container is required. `true` is **hosted/panel**: the admin surface and the new `/api/panel/*` API are mounted, and the service fails closed at startup (exits) if the panel-only Cosmos database/account are not configured. |
-
-This closes [Azure/agent-landing-zone#592](https://github.com/Azure/agent-landing-zone/issues/592):
-previously the admin SPA and admin API were mounted unconditionally at import
-time regardless of deployment mode, so a hosted/no-panel deployment exposed
-the same administrative surface as classic mode. Mounting now happens once,
-inside the ASGI `lifespan`, strictly gated on the resolved mode; `POST
-/retrieve` is unaffected by this gate because it already fails closed on its
-own hosted-retrieval flags (see above) independently of admin/panel mode.
-
-### Panel API (`/api/panel/*`, hosted/panel only)
-
-Every route below requires an authenticated caller with the Entra **Admin**
-app role — there is no development-mode auth bypass in hosted/panel mode; a
-missing tenant configuration is a hard `500`, never a silent allow.
-
-| Route | Purpose |
-| --- | --- |
-| `GET /api/panel/status` | Reports whether the panel is currently enabled and ready (re-checks live config on every call as defense-in-depth against drift, independent of the mount-time decision). |
-| `GET/POST /api/panel/feedback` | Cosmos-backed curation/feedback metadata for hosted conversations (create/list), reusing the same Cosmos account/database contract as the orchestrator's dashboard. |
-| `GET /api/panel/overview` | Aggregates jobs, files, and feedback. `feedback.available` is true for a complete read (including genuine zero feedback), false on feedback failure. When false, integer counts are zero placeholders, not observations; jobs/files remain available. This is separate from `/panel/overview/metrics` and its privacy-suppressed null counts. |
-| `GET /api/panel/conversations/{id}/history` | **Not yet implemented (`501`).** Managed Foundry Conversation history retrieval depends on a still-undefined cross-repo API surface between `agent-app-ingestion`, `agent-app-orchestrator`, and Azure AI Foundry, tracked under [Azure/agent-landing-zone#592](https://github.com/Azure/agent-landing-zone/issues/592). This service intentionally does not proxy chat execution or fabricate history — only the pieces implementable entirely within this repository are enabled today. |
+Enabling deployment does not change retrieval backends or sources, enable
+`POST /retrieve`, or remove API-key requirements from ingestion APIs.
+See [deployment and retrieval boundaries](docs/runtime.md#deployment-and-retrieval-boundaries).
 
 ## Contributing
 
-We welcome contributions! See the [contribution guidelines](https://github.com/Azure/agent-landing-zone/blob/main/CONTRIBUTING.md) for details on how to contribute.
+Follow the [engineering contract](AGENTS.md) and
+[contribution guidelines](https://github.com/Azure/agent-landing-zone/blob/main/CONTRIBUTING.md).
+Audit schemas and their integrity pins are in [`contracts/`](contracts/).
 
 ## Trademarks
 
-This project may contain trademarks or logos. Authorized use of Microsoft trademarks or logos must follow [Microsoft’s Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Modified versions must not imply sponsorship or cause confusion. Third-party trademarks are subject to their own policies.
+Microsoft trademarks and logos are subject to
+[Microsoft's guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
+Modified versions must not imply sponsorship. Third-party trademarks follow
+their owners' policies.
