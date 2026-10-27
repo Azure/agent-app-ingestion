@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v3.1.3] - 2026-10-27
+
 ### Fixed
 
 - **SharePoint permission-only synchronization.** Refresh the supported Entra
