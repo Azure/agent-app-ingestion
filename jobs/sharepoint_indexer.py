@@ -14,7 +14,7 @@ from azure.identity.aio import AzureCliCredential, ChainedTokenCredential, Manag
 from azure.search.documents.aio import SearchClient as AsyncSearchClient
 from azure.storage.blob import ContentSettings
 from azure.storage.blob.aio import BlobServiceClient
-from openai import APIConnectionError, InternalServerError, RateLimitError
+from openai import APIConnectionError, APIError, InternalServerError, RateLimitError
 
 from chunking import DocumentChunker
 from dependencies import get_config
@@ -663,7 +663,7 @@ class SharePointIndexer:
                     result=result,
                     source_type=self.cfg.indexer_name,
                 )
-                if getattr(func, "__name__", "") in {"upload_documents", "delete_documents"}:
+                if getattr(func, "__name__", "") in {"upload_documents", "delete_documents", "merge_documents"}:
                     require_confirmed_batch(kw["documents"], result)
                 return result
 
@@ -729,6 +729,44 @@ class SharePointIndexer:
         logging.debug(f"[{self.cfg.indexer_name}][INDEX-UPLOAD] Upload completed | totalDocumentsUploaded={uploaded_count}")
 
 
+    async def _refresh_item_acls(
+        self,
+        parent_id: str,
+        user_ids: List[str],
+        group_ids: List[str],
+        *,
+        include_files: bool,
+    ) -> int:
+        """Replace only changed ACLs, streaming every indexed document for this item."""
+        escaped = parent_id.replace("'", "''")
+        parent_filter = f"parent_id eq '{escaped}'"
+        if include_files:
+            # File parents start with item-parent + '/'; '0' is its exclusive upper bound.
+            parent_filter = f"({parent_filter} or (parent_id ge '{escaped}/' and parent_id lt '{escaped}0'))"
+        fields = ["metadata_security_user_ids", "metadata_security_group_ids"]
+        expected = [set(user_ids), set(group_ids)]
+        results = await self._search_client.search(
+            search_text="*", filter=parent_filter, select=["id", *fields],
+            order_by=["id asc"], headers=_ELEVATED_HEADERS,
+        )
+        batch: List[Dict[str, Any]] = []
+        batch_size = min(self.cfg.batch_size, 1000)
+        updated = 0
+        async for doc in results:
+            if all(set(doc.get(field) or []) == ids for field, ids in zip(fields, expected)):
+                continue
+            if not doc.get("id"):
+                raise ValueError("An indexed SharePoint document is missing its key.")
+            batch.append({"id": doc["id"], fields[0]: user_ids, fields[1]: group_ids})
+            if len(batch) >= batch_size:
+                await self._with_backoff(self._search_client.merge_documents, documents=batch)
+                updated += len(batch)
+                batch = []
+        if batch:
+            await self._with_backoff(self._search_client.merge_documents, documents=batch)
+            updated += len(batch)
+        return updated
+
     # ---------- content builders ----------
     async def _get_security_principals_for_item(
         self,
@@ -737,15 +775,17 @@ class SharePointIndexer:
         site_id: str,
         collection_id: str,
         item_id: str,
+        drive_item: Optional[Dict[str, Any]] = None,
     ) -> tuple[List[str], List[str]]:
         if not self._graph_client:
-            return ([], [])
+            raise RuntimeError("SharePoint permission client is unavailable.")
 
         user_ids, group_ids = await self._graph_client.get_item_permission_principal_ids(
             session=session,
             site_id=site_id,
             collection_id=collection_id,
             item_id=item_id,
+            drive_item=drive_item,
         )
 
         before_users = len(user_ids)
@@ -968,10 +1008,12 @@ class SharePointIndexer:
         security_group_ids: Optional[List[str]],
         stats: RunStats,
         stats_lock: asyncio.Lock,
+        drive_item: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         result = {"chunks": 0, "had_candidate": False}
 
-        drive_item = await self._graph_client.get_drive_item(session, site_id, collection_id, item_id)
+        if drive_item is None:
+            drive_item = await self._graph_client.get_drive_item(session, site_id, collection_id, item_id)
         if not drive_item:
             logging.debug(
                 f"[{self.cfg.indexer_name}][DOC-LIB] Drive item missing | itemId={item_id} collection={collection_name}"
@@ -1285,12 +1327,16 @@ class SharePointIndexer:
                         raise r
                     else:
                         raise TypeError("Collection worker returned an invalid result.")
+            if summary["failed"] or stats.items_failed:
+                raise RuntimeError("SharePoint synchronization failed for one or more items.")
 
             # Add richer stats and flush a "finishing" snapshot
             summary.update({
                 "itemsDiscovered": stats.items_discovered,
                 "candidateItems": stats.items_candidates,
                 "indexedItems": stats.items_indexed,
+                "aclUpdatedItems": stats.items_acl_updated,
+                "aclUpdatedDocuments": stats.acl_documents_updated,
                 "skippedNoChange": stats.items_skipped_nochange,
                 "failed": max(summary["failed"], stats.items_failed),
                 "documentLibraryStats": {
@@ -1310,19 +1356,25 @@ class SharePointIndexer:
             self._log_event(logging.WARNING, "RUN-CANCELLED", runId=run_id)
             logging.info("[%s] Run cancelled: runId=%s", self.cfg.indexer_name, run_id)
             raise
-        except Exception as exc:
+        except (AzureError, aiohttp.ClientError, RuntimeError, ValueError) as exc:
             logging.error("[%s] Run failed (%s)", self.cfg.indexer_name, type(exc).__name__)
             summary["error"] = f"Run failed ({type(exc).__name__})."
             summary["status"] = "failed"
             self._log_event(logging.ERROR, "RUN-ERROR", runId=run_id, error=summary["error"])
             raise
         finally:
+            if summary["status"] == "started":
+                summary["status"] = "failed"
+                summary["error"] = "SharePoint synchronization did not complete."
+                self._log_event(logging.ERROR, "RUN-ERROR", runId=run_id, error=summary["error"])
             # Final, authoritative "finished" (or failed/cancelled) snapshot
             summary.setdefault("documentLibraryStats", {})
             summary.update({
                 "itemsDiscovered": stats.items_discovered,
                 "candidateItems": stats.items_candidates,
                 "indexedItems": stats.items_indexed,
+                "aclUpdatedItems": stats.items_acl_updated,
+                "aclUpdatedDocuments": stats.acl_documents_updated,
                 "skippedNoChange": stats.items_skipped_nochange,
                 "skippedBlocked": stats.items_skipped_blocked,
                 "failed": max(summary.get("failed", 0), stats.items_failed),
@@ -1361,6 +1413,8 @@ class SharePointIndexer:
                 collectionsSeen=summary.get("collections", 0),
                 itemsDiscovered=stats.items_discovered,
                 itemsIndexed=stats.items_indexed,
+                aclUpdatedItems=stats.items_acl_updated,
+                aclUpdatedDocuments=stats.acl_documents_updated,
                 itemsFailed=stats.items_failed,
                 skippedNoChange=stats.items_skipped_nochange,
                 skippedBlocked=stats.items_skipped_blocked,
@@ -1513,9 +1567,8 @@ class SharePointIndexer:
                     )
                     async with stats_lock:
                         stats.items_skipped_blocked += 1
-                    return
-
-                processing_attempts += 1
+                else:
+                    processing_attempts += 1
 
                 file_log = {
                     **existing_log,
@@ -1528,7 +1581,7 @@ class SharePointIndexer:
                     "chunksIds": _make_chunk_key_prefix(parent_item_id),
                     "processingAttempts": processing_attempts,
                     "lastAttemptAt": _utc_now(),
-                    "blocked": False,
+                    "blocked": is_blocked,
                     "blockedAt": existing_log.get("blockedAt"),
                     "blockedReason": existing_log.get("blockedReason"),
                 }
@@ -1540,11 +1593,21 @@ class SharePointIndexer:
 
                 try:
                     async def _do() -> Dict[str, Any]:
+                        drive_item = None
+                        if is_document_library:
+                            drive_item = await self._graph_client.get_drive_item(session, site_id, collection_id, item_id)
+                            if drive_item is None:
+                                raise GraphRequestError("Document-library permissions require a readable drive item.")
                         security_user_ids, security_group_ids = await self._get_security_principals_for_item(
                             session=session,
                             site_id=site_id,
                             collection_id=collection_id,
                             item_id=item_id,
+                            drive_item=drive_item,
+                        )
+                        acl_updated = await self._refresh_item_acls(
+                            parent_item_id, security_user_ids, security_group_ids,
+                            include_files=is_document_library,
                         )
                         local_chunks_for_item = 0
                         local_body_uploaded = False
@@ -1553,7 +1616,7 @@ class SharePointIndexer:
                         logging.debug(f"[{self.cfg.indexer_name}][BODY] Checking body freshness | itemId={item_id} parentId={parent_item_id}")
                         
                         existing_body_mod = await self._get_body_lastmod_by_id(parent_item_id)
-                        need_body = _is_strictly_newer(last_mod, existing_body_mod)
+                        need_body = not is_blocked and _is_strictly_newer(last_mod, existing_body_mod)
                         
                         if need_body:
                             local_item_had_candidate = True
@@ -1602,7 +1665,7 @@ class SharePointIndexer:
                             f"itemId={item_id} parentId={parent_item_id} hasAttachmentsFlag={att_present}"
                         )
 
-                        if is_document_library:
+                        if is_document_library and not is_blocked:
                             doclib_result = await self._process_document_library_file(
                                 session=session,
                                 site_id=site_id,
@@ -1617,6 +1680,7 @@ class SharePointIndexer:
                                 security_group_ids=security_group_ids,
                                 stats=stats,
                                 stats_lock=stats_lock,
+                                drive_item=drive_item,
                             )
                             local_chunks_for_item += int(doclib_result.get("chunks", 0))
                             if doclib_result.get("had_candidate"):
@@ -1632,14 +1696,19 @@ class SharePointIndexer:
 
                         # ---- LOG + COUNTERS ----
                         did_upload_any = (local_body_uploaded or local_chunks_for_item > 0)
+                        status = (
+                            "success" if did_upload_any else "acl-updated" if acl_updated else
+                            "skipped-blocked" if is_blocked else "skipped-no-change"
+                        )
                         file_log.update({
-                            "status": "success" if did_upload_any else "skipped-no-change",
+                            "status": status,
                             "finishedAt": _utc_now(),
                             "chunks": local_chunks_for_item,
-                            "processingAttempts": 0 if did_upload_any else file_log.get("processingAttempts", 0),
-                            "blocked": False,
-                            "blockedAt": None,
-                            "blockedReason": None,
+                            "aclDocumentsUpdated": acl_updated,
+                            "processingAttempts": processing_attempts if is_blocked else 0,
+                            "blocked": is_blocked,
+                            "blockedAt": existing_log.get("blockedAt") if is_blocked else None,
+                            "blockedReason": existing_log.get("blockedReason") if is_blocked else None,
                         })
                         await self._write_file_log(f"{_sanitize_key_part(parent_item_id)}.json", file_log)
 
@@ -1654,7 +1723,7 @@ class SharePointIndexer:
                             f"attachmentChunks={attach_chunks} "
                             f"totalChunks={local_chunks_for_item} "
                             f"hadCandidate={local_item_had_candidate} "
-                            f"status={'uploaded' if did_upload_any else 'skipped-no-change'}"
+                            f"status={status}"
                         )
 
                         return {
@@ -1662,6 +1731,8 @@ class SharePointIndexer:
                             "uploaded": did_upload_any,
                             "had_candidate": local_item_had_candidate,
                             "body_uploaded": local_body_uploaded,
+                            "acl_updated": acl_updated,
+                            "status": status,
                         }
 
                     result = await asyncio.wait_for(_do(), timeout=self._item_timeout_s)
@@ -1671,11 +1742,16 @@ class SharePointIndexer:
                     if result.get("had_candidate"):
                         async with stats_lock:
                             stats.items_candidates += 1
-                    if result.get("uploaded"):
+                    if result.get("uploaded") or result.get("acl_updated"):
                         success += 1
+                    if result.get("uploaded"):
                         async with stats_lock:
                             stats.items_indexed += 1
-                    else:
+                    if result.get("acl_updated"):
+                        async with stats_lock:
+                            stats.items_acl_updated += 1
+                            stats.acl_documents_updated += int(result["acl_updated"])
+                    elif not result.get("uploaded") and not is_blocked:
                         async with stats_lock:
                             stats.items_skipped_nochange += 1
                     if result.get("body_uploaded"):
@@ -1693,7 +1769,8 @@ class SharePointIndexer:
                         listType=list_type,
                         itemId=item_id,
                         parentId=parent_item_id,
-                        status="uploaded" if result.get("uploaded") else "skipped-no-change",
+                        status=result["status"],
+                        aclDocumentsUpdated=int(result.get("acl_updated", 0)),
                         bodyUploaded=bool(result.get("body_uploaded")),
                         attachmentChunks=total_attach_chunks,
                         totalChunks=int(result.get("chunks", 0)),
@@ -1734,7 +1811,7 @@ class SharePointIndexer:
                         timeoutSeconds=self._item_timeout_s,
                     )
 
-                except Exception as e:
+                except (AzureError, aiohttp.ClientError, APIError, RuntimeError, ValueError, OSError) as e:
                     error = f"Item processing failed ({type(e).__name__})."
                     logging.error("[%s] %s", self.cfg.indexer_name, error)
                     processed += 1

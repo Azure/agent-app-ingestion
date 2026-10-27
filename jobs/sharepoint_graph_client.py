@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit
 from uuid import UUID
 
 import aiohttp
@@ -13,7 +13,7 @@ from tools import KeyVaultClient
 
 
 class GraphRequestError(RuntimeError):
-    """A Graph transport operation exhausted its bounded retry budget."""
+    """A Graph operation failed or returned an incomplete response."""
 
 
 class SharePointGraphClient:
@@ -340,48 +340,62 @@ class SharePointGraphClient:
         site_id: str,
         collection_id: str,
         item_id: str,
+        drive_item: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List[str], List[str]]:
-        """Return (user_object_ids, group_object_ids) that have explicit permissions on an item."""
-        # The permissions resource for list items currently exists only in the beta Graph surface.
-        url = (
-            f"{self._graph_beta_base}/sites/{site_id}/lists/{collection_id}/items/{item_id}/permissions"
-            "?$select=id,grantedToIdentitiesV2,grantedTo"
-        )
-        try:
-            data = await self._gget(session, url)
-        except ClientResponseError as exc:
-            if exc.status in (400, 401, 403, 404, 501):
-                logging.debug(
-                    f"{LOG_SCOPE} permissions lookup failed ({exc.status}) for list {collection_id} item {item_id}"
-                )
-                return ([], [])
-            raise
+        """Read all Graph-visible Entra grants; drive permissions include inherited sharing."""
+        if drive_item is not None:
+            drive_id = drive_item.get("parentReference", {}).get("driveId")
+            drive_item_id = drive_item.get("id")
+            if not drive_id or not drive_item_id:
+                raise GraphRequestError("Drive permission lookup requires drive and item IDs.")
+            resource = f"{self._graph_base}/drives/{quote(str(drive_id), safe='')}/items/{quote(str(drive_item_id), safe='')}/permissions"
+        else:
+            resource = f"{self._graph_beta_base}/sites/{site_id}/lists/{collection_id}/items/{item_id}/permissions"
+        url = resource + "?$select=id,grantedToIdentitiesV2,grantedToV2,grantedTo"
 
         user_ids: List[str] = []
         group_ids: List[str] = []
         seen_users: set[str] = set()
         seen_groups: set[str] = set()
+        visited: set[str] = set()
 
-        for perm in data.get("value", []):
-            identities = perm.get("grantedToIdentitiesV2") or perm.get("grantedToIdentities") or []
-            for identity in identities:
-                kind, obj_id = self._extract_identity_principal(identity)
-                if kind == "user" and obj_id and obj_id not in seen_users:
-                    seen_users.add(obj_id)
-                    user_ids.append(obj_id)
-                elif kind == "group" and obj_id and obj_id not in seen_groups:
-                    seen_groups.add(obj_id)
-                    group_ids.append(obj_id)
-
-            granted_to = perm.get("grantedToV2") or perm.get("grantedTo")
-            if isinstance(granted_to, dict):
-                kind, obj_id = self._extract_identity_principal(granted_to)
-                if kind == "user" and obj_id and obj_id not in seen_users:
-                    seen_users.add(obj_id)
-                    user_ids.append(obj_id)
-                elif kind == "group" and obj_id and obj_id not in seen_groups:
-                    seen_groups.add(obj_id)
-                    group_ids.append(obj_id)
+        while url:
+            if url in visited:
+                raise GraphRequestError("Graph permission pagination repeated a page.")
+            visited.add(url)
+            data = await self._gget(session, url)
+            if not isinstance(data, dict) or not isinstance(data.get("value"), list):
+                raise GraphRequestError("Graph permission response has no permission collection.")
+            for perm in data["value"]:
+                if not isinstance(perm, dict):
+                    raise GraphRequestError("Graph permission response contains an invalid entry.")
+                identities = perm.get("grantedToIdentitiesV2", perm.get("grantedToIdentities", []))
+                if identities is None:
+                    identities = []
+                if not isinstance(identities, list):
+                    raise GraphRequestError("Graph permission response contains invalid identities.")
+                granted_to = perm.get("grantedToV2", perm.get("grantedTo"))
+                if granted_to is not None:
+                    identities = [*identities, granted_to]
+                for identity in identities:
+                    if not isinstance(identity, dict):
+                        raise GraphRequestError("Graph permission response contains an invalid identity.")
+                    kind, obj_id = self._extract_identity_principal(identity)
+                    if kind == "user" and obj_id and obj_id not in seen_users:
+                        seen_users.add(obj_id)
+                        user_ids.append(obj_id)
+                    elif kind == "group" and obj_id and obj_id not in seen_groups:
+                        seen_groups.add(obj_id)
+                        group_ids.append(obj_id)
+            next_url = data.get("@odata.nextLink")
+            if next_url is not None:
+                if not isinstance(next_url, str):
+                    raise GraphRequestError("Graph permission pagination link is invalid.")
+                target = urlsplit(next_url)
+                expected = urlsplit(resource)
+                if (target.scheme, target.netloc, target.path) != (expected.scheme, expected.netloc, expected.path):
+                    raise GraphRequestError("Graph permission pagination left the permission resource.")
+            url = next_url
 
         return (user_ids, group_ids)
 
