@@ -113,6 +113,29 @@ a dedicated chunker. Do not spread extension checks across callers or turn
 - Before committing, inspect every external `uses:` reference in workflow
   YAML, composite actions, and regenerated lock files. All must remain pinned.
 
+## Shared repository protection standard
+
+- Both `main` and `develop` require a pull request, successful `quality-gate`
+  and the repository's behavior and frontend/container checks. Missing,
+  skipped, cancelled, or failing required checks do not authorize a merge.
+- The required approving-review count is zero. Independent, code-owner and
+  latest-head approvals are not mandatory. A maintainer can merge their own
+  pull request when all required checks pass. `CODEOWNERS` is ownership
+  routing, not a second-person approval requirement.
+- Preserve protected-base evaluation, policy integrity, typing coverage,
+  exception evidence and real same-workflow results. Only quality-control
+  workflows receive the protected-policy integrity guard, not unrelated
+  automations. Changing the guardrails requires explicit maintainer
+  authorization, never a candidate's own approval metadata.
+- Do not disable required checks or leave permanent bypasses. Any expressly
+  authorized administrative exception must be limited to the intended pull
+  requests and removed immediately afterward.
+- Require SHA pinning in repository Actions settings. Keep CodeQL Actions
+  security analysis enabled and authorize `pull_request_target` only for
+  `.github/workflows/block-pr-to-main.yml`, without running pull request code.
+- The normal `develop` to release to `main` flow remains unchanged. This
+  standard does not authorize publishing a release or deploying.
+
 ## Validation and evidence
 
 The Python quality bootstrap and its remaining activation requirements are

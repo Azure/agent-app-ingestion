@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Shared repository protection standard.** Require pull requests and passing
+  quality, behavior and frontend checks without mandatory second-person review.
+  Preserve protected-base integrity, immutable Actions references and narrowly
+  scoped privileged workflow authorization.
+
 ### Fixed
 
 - **Immutable GitHub Actions references.** Pin the remaining workflow actions
