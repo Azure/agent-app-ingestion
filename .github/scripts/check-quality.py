@@ -299,7 +299,7 @@ def policy_findings(root: Path, base: str, current: list[dict], protected: list[
         now = (root / name).read_text(encoding="utf-8") if (root / name).is_file() else ""
         if previous != now:
             findings.append(q.finding("protected-policy-change", name,
-                                      reason="Requires latest-head maintainer review, not candidate approval text"))
+                                      reason="Protected quality control differs from base; explicit maintainer authorization required"))
     current_config = (root / "pyproject.toml").read_text(encoding="utf-8")
     old_config = git(root, "show", f"{base}:pyproject.toml", missing=True)
     if old_config and policy_settings(old_config) != policy_settings(current_config):

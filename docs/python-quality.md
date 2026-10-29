@@ -64,7 +64,8 @@ handler fingerprints, approved protected-base metadata, and passing same-run
 behavior evidence must match. Changed or stale records fail. Logging and
 rethrowing do not automatically waive the independent handler check.
 Do not add suppressions, rewrite baselines, approve records, or weaken policy
-to make a candidate green. Policy changes require their protected review path.
+to make a candidate green. Changes to protected quality controls require
+explicit maintainer authorization, not another person's mandatory review.
 
 The initial ingestion adoption recorded 67 active exception records under
 [explicit administrative authorization](https://github.com/Azure/agent-landing-zone/issues/681#issuecomment-5601804634).
@@ -108,10 +109,14 @@ The quality workflow uses unprivileged `pull_request` execution. The separate
 main-branch guard uses `pull_request_target` to enforce branch naming.
 Do not confuse the two workflows or infer repository settings from YAML.
 
-Administrators separately own required-check activation, code-owner
-protection, latest-head review, stale-approval dismissal, and bypass
-restrictions. Validate those through normal administrative review.
-This document neither changes nor verifies live GitHub settings.
+The shared repository standard requires PRs, successful `quality-gate`,
+`unit-tests` and `frontend-checks` on both `develop` and `main`. Approving
+review count is zero, code-owner/latest-head approval is not mandatory and
+there is no permanent bypass. Maintainers may merge their own passing PRs.
+Protected-base policy integrity remains enforced. Explicitly authorized
+administrative exceptions are temporary and do not turn failed checks green.
+Administrators separately verify these live settings. This document does
+not activate them.
 
 ## Compatibility and recovery
 
