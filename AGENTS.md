@@ -95,6 +95,24 @@ a dedicated chunker. Do not spread extension checks across callers or turn
 - Surface actionable errors with context and recovery guidance without
   exposing document content, secrets, tokens, or private environment names.
 
+## GitHub Actions supply-chain policy
+
+- Pin every external action and reusable workflow in `uses:` to a verified
+  full-length, 40-character commit SHA from its source repository. Tags,
+  branches, and abbreviated SHAs are not allowed. Keep a release-version
+  comment where the source is maintained by hand. Local `./` actions do not
+  require a SHA.
+- Preserve the selected action version when pinning. Verify the commit behind
+  the original tag, including annotated tags, rather than inventing a SHA or
+  combining pinning with an unrelated dependency upgrade.
+- Regenerate agentic `.lock.yml` workflows with the matching gh-aw compiler,
+  not by hand. Pass `--action-mode action --action-tag <verified-full-sha>`
+  so recompilation cannot reintroduce a mutable setup-action reference.
+  For gh-aw v0.87.10, the `github/gh-aw-actions` commit is
+  `bc8c008a419c5b7a29df6f5641edd35fd1c6ea85`.
+- Before committing, inspect every external `uses:` reference in workflow
+  YAML, composite actions, and regenerated lock files. All must remain pinned.
+
 ## Validation and evidence
 
 The Python quality bootstrap and its remaining activation requirements are
