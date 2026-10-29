@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Immutable GitHub Actions references.** Pin the remaining workflow actions
+  to verified full-length commit SHAs without changing their selected versions,
+  and require agents to preserve SHA pinning when editing or regenerating CI.
+
 ## [v3.1.3] - 2026-10-27
 
 ### Fixed
