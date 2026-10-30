@@ -1,5 +1,5 @@
 # Development only; never installed by the ingestion image.
-ruff==0.16.5
+ruff==0.17.3
 mypy==2.3.1
 import-linter==2.14
 grimp==3.16
