@@ -4,6 +4,12 @@
 
 ### Changed
 
+- **Reviewed dependency maintenance.** Update Uvicorn, Tenacity, Cosmos DB and
+  Storage management SDKs, and adopt jest-dom 7 on the existing Node 22 test
+  toolchain. Preserve the patched security dependencies and generated lock.
+- **Grouped Actions maintenance.** Check GitHub Actions weekly against
+  `develop`, grouped with a seven-day cooldown, matching the component
+  maintenance policy without introducing duplicate updates against `main`.
 - **Chunk key hashing.** Use SHA-256 instead of SHA-1 for the truncated suffix
   of long Blob and SharePoint document IDs. Short IDs and parent IDs remain
   unchanged. Existing long-key documents are not migrated automatically.
