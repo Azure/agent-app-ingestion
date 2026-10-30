@@ -1,5 +1,35 @@
 # Changelog
 
+## [v3.1.4] - 2026-10-30
+
+### Changed
+
+- **Reviewed dependency maintenance.** Update Uvicorn, Tenacity, Cosmos DB and
+  Storage management SDKs, and adopt jest-dom 7 on the existing Node 22 test
+  toolchain. Preserve the patched security dependencies and generated lock.
+- **Grouped Actions maintenance.** Check GitHub Actions weekly against
+  `develop`, grouped with a seven-day cooldown, matching the component
+  maintenance policy without introducing duplicate updates against `main`.
+- **Chunk key hashing.** Use SHA-256 instead of SHA-1 for the truncated suffix
+  of long Blob and SharePoint document IDs. Short IDs and parent IDs remain
+  unchanged. Existing long-key documents are not migrated automatically.
+  Reindex affected parents to replace their stored chunks before relying on
+  the new IDs; retained citations to previous chunk IDs may need refreshing.
+- **Shared repository protection standard.** Require pull requests and passing
+  quality, behavior and frontend checks without mandatory second-person review.
+  Preserve protected-base integrity, immutable Actions references and narrowly
+  scoped privileged workflow authorization.
+
+### Fixed
+
+- **Security dependency updates.** Update aiohttp, PyJWT, Pillow and pypdf to
+  versions outside the reported vulnerable ranges. Refresh frontend tooling
+  and transitive dependencies, with a scoped patched selector-parser override
+  for Tailwind typography.
+- **Immutable GitHub Actions references.** Pin the remaining workflow actions
+  to verified full-length commit SHAs without changing their selected versions,
+  and require agents to preserve SHA pinning when editing or regenerating CI.
+
 ## [v3.1.3] - 2026-10-27
 
 ### Fixed
