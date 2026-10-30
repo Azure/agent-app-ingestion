@@ -79,6 +79,16 @@ See [deployment and retrieval boundaries](docs/runtime.md#deployment-and-retriev
 
 ## Contributing
 
+### Adopting the security maintenance update
+
+The security update on the source branches replaces SHA-1 with SHA-256 in
+the truncated suffix of long Blob and SharePoint chunk IDs. Short chunk IDs,
+parent IDs and parent-based deletion filters do not change. Existing indexed
+documents are not rewritten by a source merge. When adopting this update,
+reindex affected long-key parents so their stored chunks use the new IDs.
+Previously retained references to individual old chunk IDs may need refreshing.
+This is not a requirement to redeploy or reindex as part of a source-only fix.
+
 Follow the [engineering contract](AGENTS.md) and
 [contribution guidelines](https://github.com/Azure/agent-landing-zone/blob/main/CONTRIBUTING.md).
 Audit schemas and their integrity pins are in [`contracts/`](contracts/).

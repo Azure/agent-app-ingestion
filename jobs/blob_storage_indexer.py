@@ -1486,7 +1486,7 @@ class BlobStorageDocumentIndexer:
             base = "doc"
         # Truncate overly long base while preserving uniqueness with a short hash
         if len(base) > 128:
-            digest = hashlib.sha1(parent_id.encode('utf-8')).hexdigest()[:10]
+            digest = hashlib.sha256(parent_id.encode('utf-8')).hexdigest()[:10]
             base = f"{base[:100]}-{digest}"
         return f"{base}-c{chunk_id:05d}"
 
@@ -1499,7 +1499,7 @@ class BlobStorageDocumentIndexer:
         if not base:
             base = "doc"
         if len(base) > 128:
-            digest = hashlib.sha1(parent_id.encode('utf-8')).hexdigest()[:10]
+            digest = hashlib.sha256(parent_id.encode('utf-8')).hexdigest()[:10]
             base = f"{base[:100]}-{digest}"
         return f"{base}-c*"
 
