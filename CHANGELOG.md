@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v3.1.4] - 2026-10-30
+
 ### Changed
 
 - **Reviewed dependency maintenance.** Update Uvicorn, Tenacity, Cosmos DB and
