@@ -19,79 +19,28 @@ The Python 3.12 ingestion service for
 [Agent Landing Zone](https://github.com/Azure/agent-landing-zone). It chunks
 documents, generates embeddings, writes Azure AI Search content, and runs
 Blob, SharePoint, NL2SQL, and maintenance jobs. It also exposes ingestion APIs,
-an operator dashboard, and a separately gated hosted retrieval API. It does
-not execute conversational agents or store their full chat history.
+an operator dashboard, and a separately gated hosted retrieval API.
+It processes documents, not conversational agents.
 
-## Documentation and release scope
+## Documentation
 
-- [Product documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/)
-  owns deployment topology and shared setup.
-- [Canonical documentation source](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
-  is on `Azure/AI-Landing-Zones` `main`, not a legacy documentation branch.
-- [Runtime, API, security, scheduling, and audit guide](docs/runtime.md)
-  covers this service.
-- [Contributor quality commands](docs/python-quality.md) and
-  [operator dashboard development](frontend/README.md) cover local engineering.
+All application user, operator, and developer guides live in the
+[central documentation source](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
+on `Azure/AI-Landing-Zones` `main` and are published at:
 
-Use the compatible component versions recorded in the
-[Agent Landing Zone release manifest](https://github.com/Azure/agent-landing-zone/blob/main/manifest.json).
-Selecting repository `main` or `develop` alone does not select the platform's
-validated release combination.
-
-## Run this service locally
-
-Obtain compatible infrastructure and a development App Configuration store
-through Agent Landing Zone first. This repository's Bicep file does not
-provision a standalone environment. The selected sources, models, storage,
-Search index, identities, and network access must already be configured.
-
-**Starting the service can write and delete data.** Startup jobs default to
-enabled, and cron scheduling remains active even when immediate startup jobs
-are disabled. Review the [scheduling defaults](docs/runtime.md#jobs-and-startup)
-before connecting to any environment.
-
-From this repository's root, with Python 3.12 and Azure CLI installed, run:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-az login
-$env:APP_CONFIG_ENDPOINT = "https://<app-configuration-name>.azconfig.io"
-.\.venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8080
-```
-
-These are service startup commands, not infrastructure deployment commands.
-See [configuration and identity](docs/runtime.md#configuration-and-identity)
-for RBAC, runtime values, and environment opt-in. `GET /healthz` and
-`GET /readyz` are process probes, not proof that a source was indexed.
-
-## Optional deployment
-
-The ingestion Container App is optional, independently of Container Apps or
-Foundry hosted orchestration. Fresh supported native Foundry IQ deployments
-default its platform deployment control to `false`. Existing and custom
-selections are preserved. Native Blob ingestion does not replace conversation
-attachments or all source types.
-
-Enabling deployment does not change retrieval backends or sources, enable
-`POST /retrieve`, or remove API-key requirements from ingestion APIs.
-See [deployment and retrieval boundaries](docs/runtime.md#deployment-and-retrieval-boundaries).
+- [Document ingestion](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/ingestion/)
+- [Ingestion jobs and recovery](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/ingestion-jobs/)
+- [Application operations](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/operations/)
+- [Run ingestion locally](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/local-development/#ingestion)
+- [Application API reference](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-api/)
+- [Ingestion tests and quality checks](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-testing/#ingestion)
 
 ## Contributing
 
-### Adopting the security maintenance update
-
-The security update on the source branches replaces SHA-1 with SHA-256 in
-the truncated suffix of long Blob and SharePoint chunk IDs. Short chunk IDs,
-parent IDs and parent-based deletion filters do not change. Existing indexed
-documents are not rewritten by a source merge. When adopting this update,
-reindex affected long-key parents so their stored chunks use the new IDs.
-Previously retained references to individual old chunk IDs may need refreshing.
-This is not a requirement to redeploy or reindex as part of a source-only fix.
-
 Follow the [engineering contract](AGENTS.md) and
 [contribution guidelines](https://github.com/Azure/agent-landing-zone/blob/main/CONTRIBUTING.md).
-Audit schemas and their integrity pins are in [`contracts/`](contracts/).
+Internal engineering rules, policies, and executable contracts remain local.
+See [security reporting](SECURITY.md) and the [license](LICENSE.md).
 
 ## Trademarks
 

@@ -107,18 +107,23 @@ Before publishing:
 
 Documentation must describe current shipped behavior.
 
-- The repository `README.md` owns concise ingestion-specific service and audit
-  behavior that must stay synchronized with code and contracts.
-- Cross-component user and operator documentation lives on the `docs` branch
-  of `Azure/agent-landing-zone` and is published at
+- All application user, operator, and developer guides live on `main` in
+  [`Azure/AI-Landing-Zones`](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
+  and are published at
   https://azure.github.io/AI-Landing-Zones/agent-landing-zone/.
+- Component READMEs contain concise service descriptions and central links,
+  not startup, API, quality, audit, or maintenance-adoption manuals.
+- The [Monitoring & audit guide](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-monitoring/)
+  owns audit guidance. Keep it synchronized with executable local contracts,
+  telemetry, and tests.
+- Keep internal engineering instructions, ADRs, schemas, contracts, governance,
+  workflows, policies, and changelogs local.
 - Update relevant documentation in the same coordinated change when a format,
   configuration key, default, index field, deployment step, operator flow,
   contract, or breaking behavior changes.
 - Search the published documentation source for old names and affected keys.
-- Keep service READMEs concise and link to the published site rather than
-  duplicating broad product guidance.
+- Do not duplicate central application guides in component documentation.
 
-A change with user or operator impact is incomplete until documentation is
+A change with user, operator, or developer impact is incomplete until documentation is
 updated or repository and published-doc searches demonstrate that no page is
 affected.

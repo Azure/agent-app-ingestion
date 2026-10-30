@@ -5,16 +5,23 @@ description: Keeps ingestion repository and published Agent Landing Zone documen
 
 # Ingestion documentation consistency
 
-1. Identify the user, operator, or cross-component behavior that changed.
+1. Identify the user, operator, developer, or cross-component behavior that changed.
 2. Search this repository for the format, configuration key, index field,
    endpoint, job type, contract, and previous terminology.
-3. Update ingestion-specific service or audit guidance in `README.md`.
-4. Search the `docs` branch of `Azure/agent-landing-zone` for cross-component user and
-   operator guidance and update every affected page in the coordinated change.
-5. Register new published pages in that branch's `mkdocs.yml`.
+3. Keep component READMEs limited to concise descriptions and central pointers.
+   Keep internal engineering instructions, ADRs, schemas, contracts, governance,
+   workflows, policies, and changelogs local.
+4. Search `main` of
+   [`Azure/AI-Landing-Zones`](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
+   for all affected application user, operator, and developer guides. Update
+   every affected page in the coordinated change. Audit guidance belongs in
+   [Monitoring & audit](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-monitoring/),
+   backed by executable local contracts, telemetry, and tests.
+5. Register new published pages in that repository's `mkdocs.yml`.
 6. Ensure examples match current defaults, App Configuration labels,
    supported deployment modes, and released component behavior.
 
-Keep the service README concise and link to
-https://azure.github.io/AI-Landing-Zones/agent-landing-zone/ for broad product guidance. Report the
-documentation branch or pull request in the implementation handoff.
+Publish application guides at
+https://azure.github.io/AI-Landing-Zones/agent-landing-zone/ rather than
+duplicating them locally. Report the central source commit or pull request and
+publication status in the implementation handoff.

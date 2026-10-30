@@ -138,8 +138,9 @@ a dedicated chunker. Do not spread extension checks across callers or turn
 
 ## Validation and evidence
 
-The Python quality bootstrap and its remaining activation requirements are
-documented in [docs/python-quality.md](docs/python-quality.md). Use Python 3.12:
+Contributor commands and quality-policy evidence requirements are documented in
+[Ingestion tests and quality checks](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-testing/#ingestion).
+Use Python 3.12:
 
 ```text
 python -m pip install -r requirements-quality.txt
@@ -180,6 +181,15 @@ documents land in Azure AI Search. If live validation cannot run, identify
 the missing dependency and residual risk explicitly.
 
 ## Architecture, releases, and documentation
+
+All application user, operator, and developer guides belong in
+[`Azure/AI-Landing-Zones` `main`](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
+and are published at https://azure.github.io/AI-Landing-Zones/agent-landing-zone/.
+Component READMEs contain only concise descriptions and pointers. Internal
+engineering instructions, policies, governance, and executable contracts stay
+local. The [Monitoring & audit guide](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-monitoring/)
+owns audit guidance, backed by local [`contracts/`](contracts/),
+[`telemetry/`](telemetry/), and their tests.
 
 Load `engineering-principles` for meaningful design, refactoring, data,
 security, Azure integration, testing, or operational work. Load

@@ -36,19 +36,22 @@ If this change depends on pull requests in other repositories within the solutio
 - [ ] [agent-app-orchestrator](https://github.com/Azure/agent-app-orchestrator)
 - [ ] [agent-app-ingestion](https://github.com/Azure/agent-app-ingestion)
 - [ ] [agent-app-ui](https://github.com/Azure/agent-app-ui)
+- [ ] [AI-Landing-Zones documentation](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone)
 
 ## Does this require changes to project documentation?
 
-If the changes add new functionality, update the documentation accordingly.
+Update affected application user, operator, and developer guides in
+`Azure/AI-Landing-Zones` `main`. Keep internal engineering and governance
+documentation in this repository.
 
 - [ ] Yes
 - [ ] No
 
 ## Documentation Link
 
-If this change adds a new functionality, provide a link to its documentation.
+Provide the central source commit or pull request and the published guide link.
 
-<!-- Example: https://github.com/Azure/agent-app-orchestrator/wiki/New-Feature-Guide -->
+<!-- Published guides: https://azure.github.io/AI-Landing-Zones/agent-landing-zone/ -->
 
 ## Code quality checklist
 

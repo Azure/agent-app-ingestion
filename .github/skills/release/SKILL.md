@@ -116,9 +116,10 @@ generalize it.
 
 ## 4. Validate and open the release pull request
 
-Discover validation from the repository itself: CI workflows, contributor
-instructions, README commands, package scripts, and existing test
-configuration. Run the smallest existing checks that cover release metadata,
+Discover validation from CI workflows, local contributor instructions, package
+scripts, existing test configuration, and the central
+[Ingestion tests and quality checks](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-testing/#ingestion).
+Run the smallest existing checks that cover release metadata,
 then run any required release, unit, lint, build, or packaging checks. Record
 the exact commands and results in the pull request. A documentation-only
 change does not justify running deployment scripts or touching Azure.
