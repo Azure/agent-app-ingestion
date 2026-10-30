@@ -22,6 +22,9 @@
 
 ### Fixed
 
+- **Dependabot configuration syntax.** Separate the GitHub Actions update
+  entry from the preceding package labels so all three update streams remain
+  valid YAML and dependency maintenance continues to run.
 - **Security dependency updates.** Update aiohttp, PyJWT, Pillow and pypdf to
   versions outside the reported vulnerable ranges. Refresh frontend tooling
   and transitive dependencies, with a scoped patched selector-parser override
