@@ -1,30 +1,9 @@
-# Ingestion operator dashboard development
+# Ingestion operator dashboard
 
 This React/TypeScript dashboard belongs to the ingestion service, not a
-separately deployed chat UI. Use Node 22, as in this repository's CI.
+separately deployed chat UI. Its developer guides live in the central
+[`Azure/AI-Landing-Zones` `main` documentation](https://github.com/Azure/AI-Landing-Zones/tree/main/docs/agent-landing-zone):
 
-From this directory:
-
-```text
-npm ci
-npm run dev
-```
-
-The Vite development server proxies `/api` to `http://localhost:8080`.
-Start the backend separately using the [service README](../README.md) and
-review its scheduling and authorization warnings first. The proxy does not
-start a backend, provision resources, or bypass its authorization.
-
-The maintained offline validation commands are:
-
-```text
-npm test
-npm run lint
-npm run build
-```
-
-The build writes to `../static`, which FastAPI can serve at `/dashboard`
-when the administrative surface is mounted. Runtime mode gates and API
-contracts are described in the [runtime guide](../docs/runtime.md).
-Product deployment remains in the
-[central documentation](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/).
+- [Run the operator dashboard frontend locally](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/local-development/#operator-dashboard-frontend)
+- [Customize the operator dashboard](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/customize-components/#operator-dashboard-changes)
+- [Ingestion tests and quality checks](https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-testing/#ingestion)

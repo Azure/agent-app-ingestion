@@ -1,5 +1,6 @@
 # Verified repository administrator: placerda (GitHub permission API, 2026-09-06).
-# This file is not enforcement by itself; see docs/python-quality.md.
+# This file is not enforcement by itself. See AGENTS.md and
+# https://azure.github.io/AI-Landing-Zones/agent-landing-zone/application-testing/#quality-policy-and-evidence.
 /.quality/ @placerda
 /pyproject.toml @placerda
 /requirements-quality.txt @placerda
