@@ -4,6 +4,11 @@
 
 ### Changed
 
+- **Chunk key hashing.** Use SHA-256 instead of SHA-1 for the truncated suffix
+  of long Blob and SharePoint document IDs. Short IDs and parent IDs remain
+  unchanged. Existing long-key documents are not migrated automatically.
+  Reindex affected parents to replace their stored chunks before relying on
+  the new IDs; retained citations to previous chunk IDs may need refreshing.
 - **Shared repository protection standard.** Require pull requests and passing
   quality, behavior and frontend checks without mandatory second-person review.
   Preserve protected-base integrity, immutable Actions references and narrowly
@@ -11,6 +16,10 @@
 
 ### Fixed
 
+- **Security dependency updates.** Update aiohttp, PyJWT, Pillow and pypdf to
+  versions outside the reported vulnerable ranges. Refresh frontend tooling
+  and transitive dependencies, with a scoped patched selector-parser override
+  for Tailwind typography.
 - **Immutable GitHub Actions references.** Pin the remaining workflow actions
   to verified full-length commit SHAs without changing their selected versions,
   and require agents to preserve SHA pinning when editing or regenerating CI.
