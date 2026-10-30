@@ -129,7 +129,7 @@ def _make_parent_key(*parts: str) -> str:
 def _make_chunk_key_prefix(parent_id: str) -> str:
     base = _sanitize_key_part(parent_id.lstrip("/"))
     if len(base) > 128:
-        digest = hashlib.sha1(parent_id.encode("utf-8")).hexdigest()[:10]
+        digest = hashlib.sha256(parent_id.encode("utf-8")).hexdigest()[:10]
         base = f"{base[:100]}-{digest}"
     return f"{base}-c*"
 
@@ -139,7 +139,7 @@ def _make_chunk_key(parent_id: str, chunk_id: int) -> str:
     if not base:
         base = "doc"
     if len(base) > 128:
-        digest = hashlib.sha1(parent_id.encode("utf-8")).hexdigest()[:10]
+        digest = hashlib.sha256(parent_id.encode("utf-8")).hexdigest()[:10]
         base = f"{base[:100]}-{digest}"
     return f"{base}-c{chunk_id:05d}"
 
