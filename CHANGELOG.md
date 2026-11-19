@@ -8,6 +8,14 @@
   Azure Cosmos DB SDK 4.17.1 and PyJWT 2.15.1 together. Retain the protected
   quality-tool pins and compiler-generated workflow runtime.
 
+### Fixed
+
+- **Shell deployment reads single-line App Configuration values.** `scripts/deploy.sh`
+  no longer drops the last Azure CLI output line when it has no trailing newline.
+  Before this fix, `get_config_value` rejected valid values such as
+  `CONTAINER_REGISTRY_NAME` on Linux. A failed read now reports the exit code
+  and raw Azure CLI output.
+
 ## [v3.1.4] - 2026-10-30
 
 ### Changed

@@ -59,7 +59,7 @@ select_cli_value() {
   local expected="${1:-}"
   local line trimmed fallback=""
 
-  while IFS= read -r line; do
+  while IFS= read -r line || [[ -n "$line" ]]; do
     trimmed="$(printf "%s" "$line" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
     [[ -z "$trimmed" ]] && continue
 
@@ -105,7 +105,7 @@ get_azd_value() {
 
 get_config_value() {
   local key="$1"
-  local candidate output status last_output=""
+  local candidate output raw_output status last_output=""
 
   local cfg_label
   for cfg_label in "${config_labels[@]}"; do
@@ -123,12 +123,13 @@ get_config_value() {
     status=$?
     set -e
 
+    raw_output="$output"
     output="$(printf "%s" "$output" | select_cli_value)"
     if [[ $status -eq 0 && -n "${output//[[:space:]]/}" ]]; then
       printf "%s" "$output"
       return 0
     fi
-    last_output="$output"
+    last_output="exit $status: $raw_output"
   done < <(unique_candidates "$key")
   done
 
