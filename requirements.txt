@@ -6,7 +6,7 @@ webvtt-py==0.5.1
 apscheduler==3.11.3
 
 # Azure SDK dependencies
-azure-appconfiguration==1.8.1
+azure-appconfiguration==1.10.0
 azure-appconfiguration-provider==2.5.0
 azure-identity==1.25.3
 azure-keyvault-secrets==4.9.0
