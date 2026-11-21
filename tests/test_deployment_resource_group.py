@@ -70,5 +70,37 @@ APP_CONFIG_ENDPOINT=https://example.azconfig.io
         self.run_cases([shutil.which("bash"), "-c"], driver + resolver + "\nget_application_resource_group")
 
 
+    @unittest.skipUnless(shutil.which("bash"), "Bash is unavailable")
+    def test_shell_config_value_without_trailing_newline(self):
+        source = (ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8-sig")
+        functions = "\n".join(
+            re.search(rf"^{name}\(\) \{{.*?^\}}", source, re.M | re.S).group()
+            for name in ("select_cli_value", "unique_candidates", "get_config_value")
+        )
+        driver = """
+set -euo pipefail
+info() { :; }
+warn() { printf '%s\\n' "$*" >&2; }
+config_labels=(agent-lz)
+APP_CONFIG_ENDPOINT=https://example.azconfig.io
+az() { printf '%s' "$CFG_TEST_OUTPUT"; return "$CFG_TEST_EXIT"; }
+"""
+        for output, status, expected in (
+            ("crvalue", 0, "crvalue"),
+            ("ERROR: Forbidden", 1, None),
+        ):
+            with self.subTest(output=output, status=status):
+                result = subprocess.run(
+                    [shutil.which("bash"), "-c", driver + functions + "\nget_config_value CONTAINER_REGISTRY_NAME"],
+                    capture_output=True, text=True, timeout=15,
+                    env={**os.environ, "CFG_TEST_OUTPUT": output, "CFG_TEST_EXIT": str(status)},
+                )
+                if expected is None:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("exit 1: ERROR: Forbidden", result.stderr)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, expected)
+
 if __name__ == "__main__":
     unittest.main()
