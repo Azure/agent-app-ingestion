@@ -668,36 +668,13 @@ class SharePointIndexer:
                 return result
 
     async def _delete_parent_docs(self, parent_id: str):
+        from tools.aisearch import delete_matching_documents
+
         sanitized = parent_id.replace("'", "''")
-        ids: List[Dict[str, str]] = []
-        
-        logging.debug(f"[{self.cfg.indexer_name}][INDEX-DELETE] Starting delete operation | parentId={parent_id}")
-        
-        results = await self._search_client.search(
-            search_text="*",
-            filter=f"parent_id eq '{sanitized}'",
-            select=["id"],
-            top=1000,
-            headers=_ELEVATED_HEADERS,
+        await delete_matching_documents(
+            self._search_client, f"parent_id eq '{sanitized}'", self._with_backoff,
+            batch_size=self.cfg.batch_size,
         )
-        async for page in results.by_page():
-            async for doc in page:
-                if doc.get("id"):
-                    ids.append({"id": doc["id"]})
-        
-        logging.debug(f"[{self.cfg.indexer_name}][INDEX-DELETE] Found documents to delete | parentId={parent_id} documentsFound={len(ids)}")
-        
-        deleted_count = 0
-        for batch in _chunk(ids, self.cfg.batch_size):
-            if batch:
-                await self._with_backoff(self._search_client.delete_documents, documents=batch)
-                deleted_count += len(batch)
-                logging.debug(f"[{self.cfg.indexer_name}][INDEX-DELETE] Batch deleted | parentId={parent_id} batchSize={len(batch)} totalDeleted={deleted_count}")
-        
-        if deleted_count > 0:
-            logging.debug(f"[{self.cfg.indexer_name}][INDEX-DELETE] Completed | parentId={parent_id} totalDocumentsDeleted={deleted_count}")
-        else:
-            logging.debug(f"[{self.cfg.indexer_name}][INDEX-DELETE] No documents to delete | parentId={parent_id}")
 
     async def _upload_docs(self, docs: List[Dict[str, Any]]):
         if not docs:

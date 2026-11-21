@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import time
 from collections import Counter
 from contextlib import AsyncExitStack
 from math import isfinite
@@ -6,7 +8,7 @@ from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import IndexingResult, SearchMode
 from azure.core.exceptions import AzureError, HttpResponseError
 from azure.identity.aio import ManagedIdentityCredential, AzureCliCredential, ChainedTokenCredential
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 from dependencies import get_config
 from tools.credentials import get_azure_client_id
 from telemetry import audit
@@ -40,6 +42,60 @@ def require_confirmed_batch(documents: List[Dict[str, Any]], result: List[Indexi
     keys = [document["id"] for document in documents]
     if len(confirmed_result_keys(keys, result)) != len(keys):
         raise AzureError("Search did not confirm every requested document operation.")
+
+
+async def delete_matching_documents(
+    client: SearchClient,
+    filter_expression: str,
+    delete_batch: Callable[..., Awaitable[Any]],
+    *,
+    batch_size: int = 1000,
+) -> int:
+    """Delete bounded pages without skipping documents as the index changes."""
+    if batch_size < 1:
+        raise ValueError("Search deletion batch size must be positive.")
+    batch_size = min(batch_size, 1000)
+    started = time.monotonic()
+    deleted_keys: set[str] = set()
+    stale_attempts = 0
+    deleted = 0
+
+    while True:
+        if time.monotonic() - started > 300:
+            logging.error("Search deletion exceeded its time limit. Investigate Search and retry the affected parent.")
+            raise TimeoutError("Search deletion exceeded its time limit.")
+        results = await client.search(
+            search_text="*", filter=filter_expression, select=["id"], top=1000,
+            headers=_ELEVATED_HEADERS,
+        )
+        keys: list[str] = []
+        async for document in results:
+            key = document.get("id")
+            if not isinstance(key, str) or not key:
+                logging.error("Search deletion found an invalid key. Investigate the affected index before retrying.")
+                raise ValueError("Search returned a document without a valid key.")
+            keys.append(key)
+        if not keys:
+            return deleted
+        if len(set(keys)) != len(keys):
+            logging.error("Search deletion found duplicate keys. Investigate the affected index before retrying.")
+            raise ValueError("Search returned duplicate document keys.")
+        if deleted_keys.intersection(keys):
+            stale_attempts += 1
+            if stale_attempts > 8:
+                logging.error("Search deletion stalled on visible deleted keys. Investigate Search before retrying.")
+                raise TimeoutError("Search deletion did not make progress.")
+            await asyncio.sleep(min(0.25 * 2 ** (stale_attempts - 1), 4))
+            continue
+        if deleted + len(keys) > 100_000:
+            logging.error("Search deletion exceeded its document limit. Use a controlled repair for the affected parent.")
+            raise RuntimeError("Search deletion exceeded its document limit.")
+        for offset in range(0, len(keys), batch_size):
+            documents = [{"id": key} for key in keys[offset:offset + batch_size]]
+            await delete_batch(client.delete_documents, documents=documents)
+        deleted += len(keys)
+        deleted_keys.update(keys)
+        stale_attempts = 0
 
 
 def search_retry_delay(error: HttpResponseError, default: float) -> float:
