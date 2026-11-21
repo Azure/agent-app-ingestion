@@ -1,12 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [v3.1.5] - 2026-11-21
 
 ### Changed
 
 - **Validated runtime dependency maintenance.** Adopt APScheduler 3.11.3,
-  Azure Cosmos DB SDK 4.17.1 and PyJWT 2.15.1 together. Retain the protected
-  quality-tool pins and compiler-generated workflow runtime.
+  Azure Cosmos DB SDK 4.17.1, PyJWT 2.15.1, Azure App Configuration SDK 1.10.0,
+  Azure Web management SDK 11.0.1 and LangChain text splitters 1.1.3 together.
+  Preserve configuration selector precedence and text chunk token limits.
+  Retain the protected quality-tool pins and compiler-generated workflow
+  runtime.
 
 ### Fixed
 
