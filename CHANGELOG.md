@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v3.1.6] - 2026-11-21
+
 ### Changed
 
 - **Updated frontend development dependencies.** Upgrade typescript-eslint to
