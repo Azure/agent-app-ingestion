@@ -1311,75 +1311,13 @@ class BlobStorageDocumentIndexer:
         return total
 
     async def _delete_parent_docs(self, parent_id: str):
+        from tools.aisearch import delete_matching_documents
+
         await self._ensure_clients()
-
-        page_size = 1000
-        skip = 0
-        total_ids = 0
-        max_seconds = 300.0
-        start = time.monotonic()
         sanitized = parent_id.replace("'", "''")
-
-        logging.info(
-            f"[{self.cfg.indexer_name}] _delete_parent_docs starting for parent_id={parent_id} "
-            f"(page_size={page_size}, max_seconds={max_seconds})"
+        await delete_matching_documents(
+            self._search_client, f"parent_id eq '{sanitized}'", self._with_backoff,
         )
-
-        while True:
-            elapsed = time.monotonic() - start
-            if elapsed > max_seconds:
-                logging.warning(
-                    f"[{self.cfg.indexer_name}] _delete_parent_docs TIMEOUT for parent_id={parent_id} "
-                    f"after {elapsed:.1f}s (skip={skip}, total_ids={total_ids})"
-                )
-                break
-
-            if skip >= 100_000:
-                logging.warning(
-                    f"[{self.cfg.indexer_name}] _delete_parent_docs reached skip limit for parent_id={parent_id} "
-                    f"(skip={skip}, total_ids={total_ids}). Stopping delete."
-                )
-                break
-
-            logging.info(
-                f"[{self.cfg.indexer_name}] _delete_parent_docs fetching page for parent_id={parent_id}: "
-                f"skip={skip}, top={page_size}, elapsed={elapsed:.1f}s, total_ids={total_ids}"
-            )
-
-            results = await self._search_client.search(
-                search_text="*",
-                filter=f"parent_id eq '{sanitized}'",
-                select=["id"],
-                top=page_size,
-                skip=skip,
-                headers=_ELEVATED_HEADERS,
-            )
-
-            batch_ids: List[Dict[str, str]] = []
-            async for doc in results:
-                doc_id = doc.get("id")
-                if doc_id:
-                    batch_ids.append({"id": doc_id})
-
-            batch_count = len(batch_ids)
-            logging.info(
-                f"[{self.cfg.indexer_name}] _delete_parent_docs page collected "
-                f"{batch_count} ids for parent_id={parent_id} (skip={skip})"
-            )
-
-            if batch_ids:
-                await self._with_backoff(self._search_client.delete_documents, documents=batch_ids)
-                total_ids += batch_count
-
-            if batch_count == 0:
-                elapsed = time.monotonic() - start
-                logging.info(
-                    f"[{self.cfg.indexer_name}] _delete_parent_docs finished for parent_id={parent_id} "
-                    f"(total_ids_deleted={total_ids}, elapsed={elapsed:.1f}s)"
-                )
-                break
-
-            skip += page_size
 
     async def _upload_in_batches(self, docs: List[Dict[str, Any]]):
         if not docs:
