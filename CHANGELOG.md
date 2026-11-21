@@ -8,6 +8,17 @@
   Azure Cosmos DB SDK 4.17.1 and PyJWT 2.15.1 together. Retain the protected
   quality-tool pins and compiler-generated workflow runtime.
 
+### Fixed
+
+- **Patched PDF dependency.** Update pypdf to 6.21.4 through the normal
+  development and patch-release flow, preserving PDF page counting and
+  splitting while addressing the dependency security update.
+- **Shell deployment reads single-line App Configuration values.** `scripts/deploy.sh`
+  no longer drops the last Azure CLI output line when it has no trailing newline.
+  Before this fix, `get_config_value` rejected valid values such as
+  `CONTAINER_REGISTRY_NAME` on Linux. A failed read now reports the exit code
+  and raw Azure CLI output.
+
 ## [v3.1.4] - 2026-10-30
 
 ### Changed
