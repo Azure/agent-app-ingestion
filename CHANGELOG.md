@@ -10,6 +10,9 @@
 
 ### Fixed
 
+- **Patched PDF dependency.** Update pypdf to 6.21.4 through the normal
+  development and patch-release flow, preserving PDF page counting and
+  splitting while addressing the dependency security update.
 - **Shell deployment reads single-line App Configuration values.** `scripts/deploy.sh`
   no longer drops the last Azure CLI output line when it has no trailing newline.
   Before this fix, `get_config_value` rejected valid values such as

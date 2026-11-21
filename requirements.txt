@@ -43,7 +43,7 @@ Pillow==13.0.0
 
 # PDF manipulation (page counting, splitting, and figure extraction)
 PyMuPDF==1.27.2.3
-pypdf==6.21.2
+pypdf==6.21.4
 
 # Process and system utilities
 psutil==7.0.0
