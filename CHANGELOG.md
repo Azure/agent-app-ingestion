@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Updated frontend development dependencies.** Upgrade typescript-eslint to
+  8.73.0 and its minimatch dependency to 11.0.9 to maintain the dashboard's
+  linting toolchain.
+
 ## [v3.1.5] - 2026-11-21
 
 ### Changed
