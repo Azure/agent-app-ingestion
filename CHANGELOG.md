@@ -2,11 +2,44 @@
 
 ## [Unreleased]
 
+## [v3.1.6] - 2026-11-21
+
+### Changed
+
+- **Umbrella release validation guidance.** Clarify that the central Azure Bicep/Terraform validation gates promotion to Latest after an umbrella pre-release is published. This does not waive Ingestion-specific compatibility, build, deployment-evidence, or rollback requirements.
+
+- **Updated frontend development dependencies.** Upgrade typescript-eslint to
+  8.73.0 and its minimatch dependency to 11.0.9 to maintain the dashboard's
+  linting toolchain.
+
+### Fixed
+
+- **Complete replacement chunk deletion.** Delete all matching Blob and
+  SharePoint chunks during replacement without skipping pages as Search results
+  change. Stop on unconfirmed deletes or stalled results instead of reporting a
+  completed replacement.
+
+## [v3.1.5] - 2026-11-21
+
 ### Changed
 
 - **Validated runtime dependency maintenance.** Adopt APScheduler 3.11.3,
-  Azure Cosmos DB SDK 4.17.1 and PyJWT 2.15.1 together. Retain the protected
-  quality-tool pins and compiler-generated workflow runtime.
+  Azure Cosmos DB SDK 4.17.1, PyJWT 2.15.1, Azure App Configuration SDK 1.10.0,
+  Azure Web management SDK 11.0.1 and LangChain text splitters 1.1.3 together.
+  Preserve configuration selector precedence and text chunk token limits.
+  Retain the protected quality-tool pins and compiler-generated workflow
+  runtime.
+
+### Fixed
+
+- **Patched PDF dependency.** Update pypdf to 6.21.4 through the normal
+  development and patch-release flow, preserving PDF page counting and
+  splitting while addressing the dependency security update.
+- **Shell deployment reads single-line App Configuration values.** `scripts/deploy.sh`
+  no longer drops the last Azure CLI output line when it has no trailing newline.
+  Before this fix, `get_config_value` rejected valid values such as
+  `CONTAINER_REGISTRY_NAME` on Linux. A failed read now reports the exit code
+  and raw Azure CLI output.
 
 ## [v3.1.4] - 2026-10-30
 

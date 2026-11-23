@@ -6,12 +6,12 @@ webvtt-py==0.5.1
 apscheduler==3.11.3
 
 # Azure SDK dependencies
-azure-appconfiguration==1.8.1
+azure-appconfiguration==1.10.0
 azure-appconfiguration-provider==2.5.0
 azure-identity==1.25.3
 azure-keyvault-secrets==4.9.0
 azure-mgmt-storage==25.1.0
-azure-mgmt-web==8.0.0
+azure-mgmt-web==11.0.1
 azure-search-documents==11.5.2
 azure-storage-blob==12.24.1
 msgraph-sdk==1.61.0
@@ -31,7 +31,7 @@ cryptography>=50.0.1
 httpx>=0.28.1
 
 # AI and NLP dependencies
-langchain-text-splitters==1.1.2
+langchain-text-splitters==1.1.3
 openai==2.41.1
 tiktoken==0.7.0
 
@@ -43,7 +43,7 @@ Pillow==13.0.0
 
 # PDF manipulation (page counting, splitting, and figure extraction)
 PyMuPDF==1.27.2.3
-pypdf==6.21.2
+pypdf==6.21.4
 
 # Process and system utilities
 psutil==7.0.0
