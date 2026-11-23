@@ -4,6 +4,8 @@
 
 ### Changed
 
+- **Umbrella release validation guidance.** Clarify that the central Azure Bicep/Terraform validation gates promotion to Latest after an umbrella pre-release is published. This does not waive Ingestion-specific compatibility, build, deployment-evidence, or rollback requirements.
+
 - **Updated frontend development dependencies.** Upgrade typescript-eslint to
   8.73.0 and its minimatch dependency to 11.0.9 to maintain the dashboard's
   linting toolchain.
