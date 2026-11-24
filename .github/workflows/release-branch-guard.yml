@@ -1,0 +1,27 @@
+name: Release branch guard
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, edited, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  release-branch-required:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require a same-repository release branch
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_REPOSITORY" != "$BASE_REPOSITORY" || ! "$HEAD_REF" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Only same-repository branches named exactly release/X.Y.Z may target main. Target develop for other contributions."
+            exit 1
+          fi
