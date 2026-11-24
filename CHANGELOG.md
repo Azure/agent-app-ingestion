@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Unified contribution gates.** Consolidate engineering-asset validation with the
+  quality gate on pull requests, protected-branch pushes, merge queues, and manual
+  runs. Require same-repository `release/X.Y.Z` branches for `main` and clarify the
+  contribution flow through `develop` while retaining protected quality evidence.
+
 ## [v3.1.6] - 2026-11-21
 
 ### Changed

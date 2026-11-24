@@ -27,7 +27,7 @@ PROTECTED_FILES = (".github/scripts/check-quality.py", ".github/scripts/quality_
                    ".github/scripts/quality-tool.py",
                    ".github/scripts/quality-evidence.py", ".github/scripts/quality-gate.py",
                    "tests/test_quality_policy.py",
-                   ".github/workflows/tests.yml", ".github/CODEOWNERS", "requirements-quality.txt")
+                   ".github/workflows/quality-gate.yml", ".github/CODEOWNERS", "requirements-quality.txt")
 
 
 def git(root: Path, *args: str, missing: bool = False) -> str:

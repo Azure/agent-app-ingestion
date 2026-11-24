@@ -1,19 +1,38 @@
-name: Tests
+name: Quality gate
 
 on:
   pull_request:
   push:
     branches: [develop, main]
   merge_group:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || github.sha }}
   HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  agentic-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/scripts/requirements.txt
+      - name: Install pinned validator dependencies
+        run: python -m pip install --disable-pip-version-check --requirement .github/scripts/requirements.txt
+      - name: Validate agents, skills, and scoped instructions
+        run: python .github/scripts/validate-agentic-assets.py
+
   frontend-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -146,11 +165,29 @@ jobs:
 
   quality-gate:
     name: quality-gate
-    needs: [lint, typing, architecture, exceptions, policy, unit-tests, frontend-checks]
+    needs: [lint, typing, architecture, exceptions, policy, unit-tests, frontend-checks, agentic-assets]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require every prerequisite to succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          expected = {"lint", "typing", "architecture", "exceptions", "policy",
+                      "unit-tests", "frontend-checks", "agentic-assets"}
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          failed = expected.symmetric_difference(needs)
+          failed.update(name for name, job in needs.items() if job.get("result") != "success")
+          for name in sorted(failed):
+              sys.stderr.write(f"Required job did not succeed: {name}\n")
+          sys.exit(bool(failed))
+          PY
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.HEAD_SHA }}
