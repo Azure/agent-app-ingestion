@@ -118,6 +118,9 @@ a dedicated chunker. Do not spread extension checks across callers or turn
 - Both `main` and `develop` require a pull request, successful `quality-gate`
   and the repository's behavior and frontend/container checks. Missing,
   skipped, cancelled, or failing required checks do not authorize a merge.
+  - The `Quality gate` workflow also requires its `agentic-assets` job to
+    succeed. Engineering-asset validation is part of the aggregate, not a
+    separate path-filtered workflow.
 - The required approving-review count is zero. Independent, code-owner and
   latest-head approvals are not mandatory. A maintainer can merge their own
   pull request when all required checks pass. `CODEOWNERS` is ownership
