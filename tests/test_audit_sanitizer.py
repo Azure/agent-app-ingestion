@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import tracemalloc
 from collections.abc import Mapping
 
@@ -89,7 +90,7 @@ def test_ordinary_optional_field_values_pass_through_unredacted():
         "https://example.test/path?sig=abcdefghijklmnopqrstuvwxyz&sv=2026",
         "-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----",
         '{"password":"abc"}',
-        "Authorization: Basic dXNlcjpwYXNzd29yZA==",
+        f"Authorization: Basic {base64.b64encode(b'fixture-user:fixture-password').decode('ascii')}",
     ],
 )
 def test_prohibited_values_never_reach_the_serialized_export_payload(secret):
