@@ -11,6 +11,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_tracking_preserves_manual_id_and_cleans_up_after_failure():
+    """Keep the manual run ID while a job runs and remove it after failure."""
     runtime = importlib.import_module("jobs.runtime")
     runtime.running_jobs.clear()
     runtime.running_jobs["blob_index"] = {"run_id": "manual-blob_index-1", "started_at": None}
