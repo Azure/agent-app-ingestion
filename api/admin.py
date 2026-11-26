@@ -165,10 +165,7 @@ async def _load_all_runs() -> Tuple[List[dict], List[str]]:
         if "indexerType" not in data:
             data["indexerType"] = blob_name.split("/")[0]
         if not data.get("runId"):
-            try:
-                data["runId"] = blob_name.split("/runs/")[1].replace(".json", "")
-            except (IndexError, AttributeError):
-                pass
+            data["runId"] = blob_name.split("/runs/")[1].replace(".json", "")
         if not data.get("status"):
             data["status"] = "finished" if data.get("runFinishedAt") else "running"
         # Detect stale runs: if status is non-terminal and started > 2 h ago, mark interrupted
@@ -180,8 +177,8 @@ async def _load_all_runs() -> Tuple[List[dict], List[str]]:
                     data["status"] = "interrupted"
                     if not data.get("runFinishedAt"):
                         data["runFinishedAt"] = _started_raw  # best-effort placeholder
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as exc:
+                logging.warning("[admin] Could not classify run timestamp (%s)", type(exc).__name__)
         indexer_types.add(data.get("indexerType", ""))
         runs.append(data)
     return runs, sorted(indexer_types)
@@ -762,7 +759,7 @@ async def unblock_file(blobName: str = Query(..., min_length=1)):
 # key that looks like a secret/endpoint even if it sneaks into the allowlist.
 # ---------------------------------------------------------------------------
 
-from dataclasses import dataclass, field as _dc_field
+from dataclasses import dataclass
 from typing import Literal
 
 

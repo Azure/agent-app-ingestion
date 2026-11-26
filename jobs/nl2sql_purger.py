@@ -203,6 +203,7 @@ class NL2SQLPurger:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             logging.warning("[nl2sql-purger] Optional log container unavailable (%s)", type(exc).__name__)

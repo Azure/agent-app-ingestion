@@ -8,7 +8,18 @@ Usage:
 	from tools import AzureOpenAIClient, BlobClient, AppConfigClient, ...
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+	from .aisearch import AISearchClient
+	from .aoai import AzureOpenAIClient, GptTokenEstimator
+	from .appconfig import AppConfigClient
+	from .blob import BlobClient, BlobContainerClient
+	from .content_understanding import ContentUnderstandingClient
+	from .cosmosdb import CosmosDBClient
+	from .doc_intelligence import DocumentIntelligenceClient
+	from .keyvault import KeyVaultClient
+	from .sharepoint import SharePointMetadataStreamer
 
 __all__ = [
 	"AppConfigClient",

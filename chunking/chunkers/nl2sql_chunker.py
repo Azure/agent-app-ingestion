@@ -1,5 +1,4 @@
 import logging
-import os
 import json
 
 from .base_chunker import BaseChunker

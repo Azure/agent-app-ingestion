@@ -25,7 +25,6 @@ import tempfile
 
 from dependencies import get_config
 from tools.credentials import get_azure_client_id
-from chunking import DocumentChunker
 from chunking.chunker_factory import ChunkerFactory
 from utils.file_utils import _safe_delete
 from telemetry import audit
@@ -1363,6 +1362,7 @@ class BlobStorageDocumentIndexer:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             if name != self.cfg.jobs_log_container:
@@ -1455,6 +1455,7 @@ class BlobStorageDocumentIndexer:
             if isinstance(parsed, list):
                 return [str(x).strip() for x in parsed if str(x).strip()]
         except json.JSONDecodeError:
+            # The value may use Python-literal or delimiter syntax instead.
             pass
         # Try Python literal (e.g., "['a', 'b']")
         try:
@@ -1462,6 +1463,7 @@ class BlobStorageDocumentIndexer:
             if isinstance(lit, list):
                 return [str(x).strip() for x in lit if str(x).strip()]
         except (ValueError, SyntaxError):
+            # Fall through to the delimiter-based format.
             pass
         # Fallback: strip surrounding brackets, split on comma or semicolon
         s = raw_val.strip()
@@ -1902,6 +1904,7 @@ class BlobStorageDeletedItemsCleaner:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             logging.warning("[blob-storage-purger] Log container unavailable (%s)", type(exc).__name__)

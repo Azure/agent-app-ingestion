@@ -185,6 +185,32 @@ def _build_client(monkeypatch, **kwargs):
     return TestClient(app), state, admin_module
 
 
+def test_invalid_run_timestamp_is_diagnosed_without_exposing_value(monkeypatch, caplog):
+    _, _, admin = _build_client(monkeypatch)
+    name = "worker/runs/run-1.json"
+    payload = {"status": "running", "runStartedAt": "private-invalid-timestamp"}
+
+    async def list_blobs(**kwargs):
+        yield types.SimpleNamespace(name=name)
+
+    container = types.SimpleNamespace(list_blobs=list_blobs)
+
+    async def get_service():
+        return types.SimpleNamespace(get_container_client=lambda _: container)
+
+    async def download(_container, blob_name, _sem):
+        return blob_name, dict(payload)
+
+    monkeypatch.setattr(admin, "_get_blob_service", get_service)
+    monkeypatch.setattr(admin, "_download_blob", download)
+    runs, _ = asyncio.run(admin._load_all_runs())
+
+    assert runs[0]["runId"] == "run-1"
+    assert runs[0]["status"] == "running"
+    assert "Could not classify run timestamp (ValueError)" in caplog.text
+    assert "private-invalid-timestamp" not in caplog.text
+
+
 # ---------------------------------------------------------------------------
 # Shape
 # ---------------------------------------------------------------------------

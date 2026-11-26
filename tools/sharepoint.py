@@ -9,10 +9,8 @@ You can provide a list of file extensions (for example, "pdf" or "docx") to rest
 Every 10 files found, it logs a simple progress message so you always know how many files have been processed so far.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 import msal
-import os
 import requests
 import re
 import logging
@@ -225,7 +223,7 @@ class SharePointMetadataStreamer:
         resp = self._make_ms_graph_request(url)
         return resp.get("id")
     
-    def _get_drive_id(self, site_id: str, drive_name: str, access_token: Optional[str] = None) -> str:
+    def _get_drive_id(self, site_id: str, drive_name: str, access_token: Optional[str] = None) -> Optional[str]:
         """
         Get the drive ID from a Microsoft Graph site.
         """
@@ -244,6 +242,7 @@ class SharePointMetadataStreamer:
             if drive.get("name") == drive_name:
                 logging.debug(f"[sharepoint_files_reader] Found drive: {drive_name}")
                 return drive.get("id")
+        return None
     
     def _get_sub_site(
         self, site_id: str, site_name: str, access_token: Optional[str] = None
@@ -267,6 +266,7 @@ class SharePointMetadataStreamer:
         except requests.RequestException as err:
             logging.error("[sharepoint_files_reader] Sub-site lookup failed (%s)", type(err).__name__)
             return None
+        return None
 
     def _make_ms_graph_request(
         self,
@@ -292,13 +292,6 @@ class SharePointMetadataStreamer:
         response.raise_for_status()
         return response.json()
 
-    def _are_required_variables_missing(self) -> bool:
-        missing = [v for v in [self.tenant_id, self.client_id, self.client_secret, self.authority] if not v]
-        if missing:
-            logging.error("[sharepoint] Missing required credentials.")
-            return True
-        return False
-
     def _get_files(
         self,
         site_id: str,
@@ -321,6 +314,7 @@ class SharePointMetadataStreamer:
         file_count = 0
 
         def traverse(rel_path: str):
+            nonlocal file_count
             # Start with the first page URL
             if rel_path:
                 next_url = (
@@ -354,16 +348,6 @@ class SharePointMetadataStreamer:
                         ):
                             continue
 
-                        # Count and log progress every 50 files
-                        nonlocal_file_count = globals().get('file_count', None)
-                        # Actually increment our file_count in the outer scope
-                        # Python scoping workaround:
-                        # we refer to file_count via a mutable container or nonlocal in Python 3
-                        # Simplest: declare file_count as nonlocal
-                        # (move file_count definition into an enclosing scope if needed)
-
-                        # For clarity here, assume file_count is nonlocal:
-                        nonlocal file_count
                         file_count += 1
                         if file_count % 10 == 0:
                             logging.info(ORANGE + f"[sharepoint] Selected {file_count} files so far" + RESET)

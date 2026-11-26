@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import re
 import tempfile
 from typing import Generator, Optional
 

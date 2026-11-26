@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 import jwt
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import APIKeyHeader
 
 from tools.appconfig import AppConfigClient
