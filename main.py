@@ -195,8 +195,6 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     logging.info(f"Scheduler timezone: {local_tz}")
 
-    now = datetime.datetime.now(tz=local_tz)
-
     # Wrap every run_* function so manual and cron-triggered executions share
     # the same _running_jobs set. The wrapper is the value stored in JOB_REGISTRY
     # and the callable passed to APScheduler, so cron runs also block manual

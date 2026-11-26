@@ -55,7 +55,6 @@ def test_vendored_schema_matches_pinned_hash():
 def _validator_for(fragment: str) -> jsonschema.Draft202012Validator:
     schema = json.loads(SCHEMA_PATH.read_bytes())
     sub_schema = {"$ref": f"#/$defs/{fragment}"}
-    registry_schema = dict(schema)
     resolver = jsonschema.validators.RefResolver.from_schema(schema)
     return jsonschema.Draft202012Validator(sub_schema, resolver=resolver)
 

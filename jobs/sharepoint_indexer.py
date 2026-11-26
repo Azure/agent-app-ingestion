@@ -1565,10 +1565,6 @@ class SharePointIndexer:
                 }
                 file_log["listType"] = list_type
 
-                chunks_for_item = 0
-                body_uploaded = False
-                item_had_candidate = False  # whether body or any attachment needed reindex
-
                 try:
                     async def _do() -> Dict[str, Any]:
                         drive_item = None
