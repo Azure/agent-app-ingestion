@@ -223,7 +223,7 @@ class SharePointMetadataStreamer:
         resp = self._make_ms_graph_request(url)
         return resp.get("id")
     
-    def _get_drive_id(self, site_id: str, drive_name: str, access_token: Optional[str] = None) -> str:
+    def _get_drive_id(self, site_id: str, drive_name: str, access_token: Optional[str] = None) -> Optional[str]:
         """
         Get the drive ID from a Microsoft Graph site.
         """
@@ -242,6 +242,7 @@ class SharePointMetadataStreamer:
             if drive.get("name") == drive_name:
                 logging.debug(f"[sharepoint_files_reader] Found drive: {drive_name}")
                 return drive.get("id")
+        return None
     
     def _get_sub_site(
         self, site_id: str, site_name: str, access_token: Optional[str] = None
@@ -265,6 +266,7 @@ class SharePointMetadataStreamer:
         except requests.RequestException as err:
             logging.error("[sharepoint_files_reader] Sub-site lookup failed (%s)", type(err).__name__)
             return None
+        return None
 
     def _make_ms_graph_request(
         self,
