@@ -13,6 +13,8 @@
   SHA-pinned GitHub Actions updates while preserving protected-base evaluation
   and required same-workflow evidence. Pending protected-policy adoption on `main`.
 
+## [v3.1.8] - 2026-11-26
+
 ### Fixed
 
 - **Exception detail no longer reflected in HTTP errors.** The `/document-chunking`,
