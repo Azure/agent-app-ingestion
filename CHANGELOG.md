@@ -7,6 +7,8 @@
 - **SharePoint subsite scope.** Resolve the drive and traversal site from the
   requested subsite; stop if it cannot be found instead of using the parent site.
 
+## [v3.1.9] - 2026-11-26
+
 ### Changed
 
 - **Unified contribution gates.** Consolidate engineering-asset validation with the
@@ -16,7 +18,8 @@
 
 - **Updated protected quality toolchain.** Adopt mypy 2.4.1 and the reviewed,
   SHA-pinned GitHub Actions updates while preserving protected-base evaluation
-  and required same-workflow evidence. Pending protected-policy adoption on `main`.
+  and required same-workflow evidence. Adopted on `main` through a one-off,
+  maintainer-authorized protected-policy adoption.
 
 ## [v3.1.8] - 2026-11-26
 
