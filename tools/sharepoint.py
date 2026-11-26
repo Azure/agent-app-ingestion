@@ -292,13 +292,6 @@ class SharePointMetadataStreamer:
         response.raise_for_status()
         return response.json()
 
-    def _are_required_variables_missing(self) -> bool:
-        missing = [v for v in [self.tenant_id, self.client_id, self.client_secret, self.authority] if not v]
-        if missing:
-            logging.error("[sharepoint] Missing required credentials.")
-            return True
-        return False
-
     def _get_files(
         self,
         site_id: str,
