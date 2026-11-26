@@ -1,10 +1,9 @@
 import os
 import logging
 
-from typing import Dict, Any
+from typing import Any
 from azure.identity import ChainedTokenCredential, ManagedIdentityCredential, AzureCliCredential
 from azure.identity.aio import ChainedTokenCredential as AsyncChainedTokenCredential, ManagedIdentityCredential as AsyncManagedIdentityCredential, AzureCliCredential as AsyncAzureCliCredential
-from azure.appconfiguration import AzureAppConfigurationClient
 from azure.core.exceptions import AzureError
 from azure.appconfiguration.provider import (
     AzureAppConfigurationKeyVaultOptions,

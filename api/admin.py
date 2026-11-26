@@ -762,7 +762,7 @@ async def unblock_file(blobName: str = Query(..., min_length=1)):
 # key that looks like a secret/endpoint even if it sneaks into the allowlist.
 # ---------------------------------------------------------------------------
 
-from dataclasses import dataclass, field as _dc_field
+from dataclasses import dataclass
 from typing import Literal
 
 

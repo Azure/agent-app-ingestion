@@ -1,4 +1,3 @@
-import os
 import logging
 import platform
 
@@ -6,7 +5,6 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource, SERVICE_INSTANCE_ID, SERVICE_VERSION, SERVICE_NAMESPACE
 from opentelemetry.trace import Span, Status, StatusCode, Tracer
-from dependencies import get_config
 from tools.appconfig import AppConfigClient
 
 # Custom filter to exclude trace logs

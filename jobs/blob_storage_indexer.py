@@ -25,7 +25,6 @@ import tempfile
 
 from dependencies import get_config
 from tools.credentials import get_azure_client_id
-from chunking import DocumentChunker
 from chunking.chunker_factory import ChunkerFactory
 from utils.file_utils import _safe_delete
 from telemetry import audit

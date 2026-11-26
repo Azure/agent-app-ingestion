@@ -9,10 +9,8 @@ You can provide a list of file extensions (for example, "pdf" or "docx") to rest
 Every 10 files found, it logs a simple progress message so you always know how many files have been processed so far.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 import msal
-import os
 import requests
 import re
 import logging
