@@ -57,6 +57,7 @@ def purger(monkeypatch):
         search_calls = 0
         close_calls = 0
         delete_calls = 0
+        deleted_requests = None
         count_error = AzureError("count failed")
 
         async def get_search_client(self, index):
@@ -73,6 +74,7 @@ def purger(monkeypatch):
 
         async def delete_documents(self, **kwargs):
             self.delete_calls += 1
+            self.deleted_requests = kwargs
             if self.delete_failure:
                 raise self.delete_failure
             return self.outcome
@@ -122,6 +124,16 @@ def purger(monkeypatch):
 @pytest.mark.asyncio
 async def test_purge_counts_only_confirmed_deletions(purger):
     assert await purger._purge_one_index("index", set()) == 2
+
+
+@pytest.mark.asyncio
+async def test_purge_keeps_existing_documents_and_uses_elevated_reads(purger):
+    purger._ai_search.outcome = {"deleted": 1, "failed": 0}
+    assert await purger._count_index_docs("index") == 2
+    assert await purger._purge_one_index("index", {"a"}) == 1
+    assert purger._ai_search.deleted_requests == {
+        "index_name": "index", "key_field": "id", "key_values": ["b"],
+    }
 
 
 @pytest.mark.asyncio

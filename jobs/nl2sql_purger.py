@@ -16,7 +16,6 @@ from tools import AISearchClient
 
 # Elevated-read header – bypasses permission filtering for service-side queries.
 _ELEVATED_HEADERS = {"x-ms-enable-elevated-read": "true"}
-_ELEVATED_API_VERSION = "2025-11-01-preview"
 
 
 @dataclass
