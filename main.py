@@ -275,6 +275,7 @@ async def lifespan(app: FastAPI):
         try:
             await startup_task
         except asyncio.CancelledError:
+            # Cancellation was requested as part of shutdown.
             pass
 
     scheduler.shutdown(wait=False)
