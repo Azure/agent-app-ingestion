@@ -372,7 +372,7 @@ async def document_chunking(request: Request):
         body = await request.json()
     except json.JSONDecodeError as e:
         logging.error(f"[document_chunking] Invalid JSON: {e}")
-        return Response(f"Invalid JSON: {e}", status_code=400)
+        return Response("Invalid JSON body.", status_code=400)
 
     # --- validate schema ---
     try:
@@ -473,7 +473,7 @@ async def text_embedding(request: Request):
         body = await request.json()
     except json.JSONDecodeError as e:
         logging.error(f"[text_embedding] Invalid JSON: {e}")
-        return Response(f"Invalid JSON: {e}", status_code=400)
+        return Response("Invalid JSON body.", status_code=400)
 
     if not body or "values" not in body:
         logging.error("[text_embedding] Invalid body.")
@@ -527,7 +527,7 @@ async def ingest_documents(request: Request):
         body = await request.json()
     except json.JSONDecodeError as e:
         logging.error(f"[ingest_documents] Invalid JSON: {e}")
-        return Response(f"Invalid JSON: {e}", status_code=400)
+        return Response("Invalid JSON body.", status_code=400)
 
     # --- validate schema ---
     try:
@@ -590,8 +590,8 @@ async def ingest_documents(request: Request):
         # --- Decode base64 ---
         try:
             file_bytes = base64.b64decode(file_b64)
-        except ValueError as e:
-            errors.append({"message": f"Error decoding base64: {e}"})
+        except ValueError:
+            errors.append({"message": "Error decoding base64: fileBase64 is not valid base64."})
             results.append({"recordId": record_id, "errors": errors, "warnings": warnings})
             continue
 
