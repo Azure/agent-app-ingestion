@@ -153,7 +153,6 @@ class SharePointGraphClient:
     ) -> bytes:
         download_url = drive_item.get("@microsoft.graph.downloadUrl")
         if download_url:
-            delay = 1.0
             for attempt in range(6):
                 try:
                     async with session.get(download_url) as response:

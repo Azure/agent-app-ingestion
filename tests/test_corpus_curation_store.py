@@ -262,12 +262,10 @@ async def test_record_decision_retries_on_concurrent_writer_then_succeeds():
     store = _make_store(backend)
     item_id = item_id_for_blob("x/files/a.json")
 
-    blob_client = store  # not used directly; simulate a racing writer by
-    # bumping the etag out from under the first read via a direct backend
+    # Simulate a racing writer by bumping the etag out from under the first read via a direct backend
     # mutation between download and upload. We monkeypatch upload_blob to
     # fail exactly once before delegating to the real fake implementation.
     container = _FakeContainerClient(backend)
-    real_get_blob_client = container.get_blob_client
     attempts = {"count": 0}
 
     class _FlakyBlobClient(_FakeBlobClient):

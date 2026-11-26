@@ -319,6 +319,7 @@ class SharePointMetadataStreamer:
         file_count = 0
 
         def traverse(rel_path: str):
+            nonlocal file_count
             # Start with the first page URL
             if rel_path:
                 next_url = (
@@ -352,16 +353,6 @@ class SharePointMetadataStreamer:
                         ):
                             continue
 
-                        # Count and log progress every 50 files
-                        nonlocal_file_count = globals().get('file_count', None)
-                        # Actually increment our file_count in the outer scope
-                        # Python scoping workaround:
-                        # we refer to file_count via a mutable container or nonlocal in Python 3
-                        # Simplest: declare file_count as nonlocal
-                        # (move file_count definition into an enclosing scope if needed)
-
-                        # For clarity here, assume file_count is nonlocal:
-                        nonlocal file_count
                         file_count += 1
                         if file_count % 10 == 0:
                             logging.info(ORANGE + f"[sharepoint] Selected {file_count} files so far" + RESET)

@@ -265,14 +265,6 @@ def test_overview_metrics_suppresses_low_cardinality_buckets(monkeypatch):
 
 
 def test_overview_metrics_returns_counts_at_or_above_threshold(monkeypatch):
-    item_cls = None
-
-    def _mk(n):
-        return [
-            {"item_id": f"cur_{i:032d}", "document_id": f"doc-{i}", "title": f"doc-{i}", "reason_code": "x", "submitted_at": "t"}
-            for i in range(n)
-        ]
-
     client, mod, stubs = _build_client(
         monkeypatch,
         cosmos_counts={"panel-conversation-owner-index": 7, "panel-feedback": 8},
