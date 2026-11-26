@@ -18,10 +18,12 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import logging
 import sys
 import types
 from pathlib import Path
 
+import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
@@ -420,6 +422,42 @@ def test_put_config_rejects_invalid_cron(monkeypatch):
     assert state["written"] == []
     body = r.json()
     assert "invalid cron" in body["failed"][0]["error"].lower()
+
+
+@pytest.mark.parametrize("with_valid_update", [False, True])
+def test_invalid_cron_error_does_not_echo_parser_detail(monkeypatch, with_valid_update):
+    from apscheduler.triggers.cron import CronTrigger
+
+    client, _, _ = _build_client(monkeypatch, tenant_id=None, claims=None)
+
+    def fail(cls, expr, timezone=None):
+        raise ValueError("private-parser-canary")
+
+    monkeypatch.setattr(CronTrigger, "from_crontab", classmethod(fail))
+    updates = [{"key": "CRON_RUN_BLOB_INDEX", "value": "* * * * *"}]
+    if with_valid_update:
+        updates.append({"key": "CHUNKING_NUM_TOKENS", "value": 1024})
+    r = client.put("/api/config", json={"updates": updates})
+    assert r.status_code == (207 if with_valid_update else 422), r.text
+    failed = {f["key"]: f["error"] for f in r.json()["failed"]}
+    assert "invalid cron" in failed["CRON_RUN_BLOB_INDEX"].lower()
+    assert "private-parser-canary" not in r.text
+
+
+def test_put_config_persists_and_logs_cron_without_line_breaks(monkeypatch, caplog):
+    client, state, _ = _build_client(monkeypatch, tenant_id=None, claims=None)
+    state["main"].scheduler.add_job(lambda: None, id="blob_index")
+
+    with caplog.at_level(logging.INFO):
+        r = client.put(
+            "/api/config",
+            json={"updates": [{"key": "CRON_RUN_BLOB_INDEX", "value": "*/15\r\n0\t* * *"}]},
+        )
+    assert r.status_code == 200, r.text
+    assert r.json()["rescheduled"] == ["blob_index"]
+    assert state["written"][0].value == "*/15 0 * * *"
+    rescheduled = [rec.getMessage() for rec in caplog.records if "Rescheduled cron job" in rec.getMessage()]
+    assert rescheduled == ["[admin] Rescheduled cron job blob_index @ */15 0 * * *"]
 
 
 def test_put_config_rejects_denylisted_and_unknown(monkeypatch):

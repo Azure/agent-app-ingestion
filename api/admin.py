@@ -940,11 +940,17 @@ def _coerce_and_validate(
         # `_schedule()` would accept at startup — avoids drift with croniter.
         from apscheduler.triggers.cron import CronTrigger
 
+        # The parser splits on any whitespace, so persist the canonical
+        # single-space form: CR/LF must never reach App Configuration or logs.
+        expression = " ".join(str(raw_value).split())
         try:
-            CronTrigger.from_crontab(str(raw_value).strip())
-        except ValueError as exc:
-            return None, f"{spec.key}: invalid cron expression ({exc})"
-        return str(raw_value).strip(), None
+            CronTrigger.from_crontab(expression)
+        except ValueError:
+            return None, (
+                f"{spec.key}: invalid cron expression "
+                "(expected 5 fields: minute hour day month day_of_week)"
+            )
+        return expression, None
 
     return None, f"{spec.key}: unsupported setting type"
 
@@ -1021,7 +1027,8 @@ def _reschedule_cron_job(env_key: str, cron_expr: str) -> Optional[str]:
         if func is None:
             return None
         scheduler.add_job(func, trigger=trigger, id=job_id, replace_existing=True)
-    logging.info("[admin] Rescheduled cron job %s @ %s", job_id, cron_expr)
+    # Log the schedule as parsed by APScheduler, not the request input.
+    logging.info("[admin] Rescheduled cron job %s @ %s", job_id, _cron_trigger_to_string(trigger))
     return job_id
 
 
