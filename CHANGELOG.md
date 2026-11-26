@@ -1,5 +1,22 @@
 # Changelog
 
+## [v3.1.8] - 2026-11-26
+
+### Fixed
+
+- **Exception detail no longer reflected in HTTP errors.** The `/document-chunking`,
+  `/text-embedding`, and `/ingest-documents` routes now return a fixed
+  `Invalid JSON body.` message, and per-record base64 decoding errors use a fixed
+  message, instead of echoing parser exception text. Invalid cron values in
+  `PUT /api/config` report the expected 5-field format instead of the APScheduler
+  error. JSON parse diagnostics remain in server logs; response shapes and status
+  codes are unchanged.
+
+- **Canonical cron expressions in operator configuration.** `PUT /api/config` now
+  stores cron values with single-space separators, so tabs and CR/LF line breaks
+  accepted by the cron parser can no longer reach App Configuration or forge log
+  lines. Reschedule logs record the schedule parsed by APScheduler.
+
 ## [v3.1.7] - 2026-11-26
 
 ### Fixed

@@ -1,6 +1,7 @@
 """Drive the actual API-key upload route through its direct Search SDK call."""
 
 import base64
+import json
 import logging
 from pathlib import Path
 import sys
@@ -9,6 +10,7 @@ from unittest.mock import AsyncMock
 
 from azure.core.exceptions import AzureError
 from azure.search.documents.models import IndexingResult
+from fastapi import Request
 from fastapi.testclient import TestClient
 import pytest
 
@@ -189,3 +191,32 @@ def test_text_embedding_failure_remains_explicit_safe_record(upload_route, monke
     assert bad["recordId"] == "bad" and bad["data"] == {} and bad["errors"]
     assert good["data"] == {"embedding": [0.1, 0.2]} and good["errors"] == []
     assert "private-embedding-canary" not in response.text + caplog.text
+
+
+@pytest.mark.parametrize("route", ["/document-chunking", "/text-embedding", "/ingest-documents"])
+def test_invalid_json_response_does_not_echo_parser_detail(upload_route, monkeypatch, caplog, route):
+    client, _ = upload_route
+
+    async def invalid_json(self):
+        raise json.JSONDecodeError("private-parser-canary", "", 0)
+
+    monkeypatch.setattr(Request, "json", invalid_json)
+    response = client.post(route, content=b"{}", headers={"Content-Type": "application/json"})
+    assert response.status_code == 400
+    assert "private-parser-canary" not in response.text
+    assert "private-parser-canary" in caplog.text
+
+
+def test_invalid_base64_record_error_does_not_echo_decoder_detail(upload_route, monkeypatch):
+    client, sdk = upload_route
+
+    def invalid_base64(data):
+        raise ValueError("private-decoder-canary")
+
+    monkeypatch.setattr(main.base64, "b64decode", invalid_base64)
+    response = client.post("/ingest-documents", json=request_body())
+    assert response.status_code == 200
+    value = response.json()["values"][0]
+    assert value["recordId"] == "record" and value["errors"]
+    assert "private-decoder-canary" not in response.text
+    sdk.upload_documents.assert_not_awaited()
