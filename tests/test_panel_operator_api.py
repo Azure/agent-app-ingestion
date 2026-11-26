@@ -10,9 +10,7 @@ never touches the real Azure SDKs.
 
 from __future__ import annotations
 
-import base64
 import importlib
-import json
 import sys
 import types
 from dataclasses import dataclass

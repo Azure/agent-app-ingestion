@@ -1053,7 +1053,7 @@ def test_grimp_does_not_execute_package_initializers(tmp_path):
     (tmp_path / "p" / "a.py").write_text("from . import b\n", encoding="utf-8")
     (tmp_path / "p" / "b.py").write_text("VALUE = 1\n", encoding="utf-8")
     result = subprocess.run(
-        [sys.executable, "-c", "import grimp; g=grimp.build_graph('p',cache_dir=None); "
+        [sys.executable, "-c", "import grimp; g=grimp.build_graph('p',cache_dir=None); " +
          "assert g.find_modules_directly_imported_by('p.a') == {'p.b'}"],
         cwd=tmp_path, capture_output=True, text=True, timeout=30,
     )

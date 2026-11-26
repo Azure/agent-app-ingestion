@@ -46,9 +46,9 @@ async def test_cron_tracking_cleans_up_cancellation():
 
 def test_importing_runtime_does_not_initialize_workers_or_configuration():
     result = subprocess.run(
-        [sys.executable, "-c", "import sys; import jobs.runtime; "
-         "assert 'dependencies' not in sys.modules; "
-         "assert 'jobs.blob_storage_indexer' not in sys.modules; "
+        [sys.executable, "-c", "import sys; import jobs.runtime; " +
+         "assert 'dependencies' not in sys.modules; " +
+         "assert 'jobs.blob_storage_indexer' not in sys.modules; " +
          "assert 'jobs.sharepoint_indexer' not in sys.modules"],
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
     )
