@@ -11,10 +11,6 @@ LOG_SCOPE = "[sp-ingest]"
 
 LIST_TYPE_DOCUMENT_LIBRARY = "documentLibrary"
 LIST_TYPE_GENERIC_LIST = "genericList"
-_VALID_LIST_TYPES = {
-    LIST_TYPE_DOCUMENT_LIBRARY.lower(),
-    LIST_TYPE_GENERIC_LIST.lower(),
-}
 
 
 def _get_config_str(name: str) -> str:
