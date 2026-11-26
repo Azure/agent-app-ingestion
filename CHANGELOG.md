@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v3.1.7] - 2026-11-26
 
 ### Changed
 
@@ -8,6 +8,15 @@
   quality gate on pull requests, protected-branch pushes, merge queues, and manual
   runs. Require same-repository `release/X.Y.Z` branches for `main` and clarify the
   contribution flow through `develop` while retaining protected quality evidence.
+- **Updated protected quality toolchain.** Adopt mypy 2.4.1 and the reviewed,
+  SHA-pinned GitHub Actions updates while preserving protected-base evaluation
+  and required same-workflow evidence.
+
+### Fixed
+
+- **Generated sanitizer test credentials.** Construct the fake Basic authorization
+  fixture at runtime without changing audit sanitization or runtime credentials.
+  No security alerts are dismissed by this release.
 
 ## [v3.1.6] - 2026-11-21
 
