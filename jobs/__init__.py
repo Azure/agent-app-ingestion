@@ -4,6 +4,18 @@ The lightweight jobs.runtime interface must not initialize worker clients
 before main performs its authentication and deployment-mode checks.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .blob_storage_indexer import BlobStorageDeletedItemsCleaner, BlobStorageDocumentIndexer
+    from .multimodal_images_purger import ImagesDeletedFilesPurger
+    from .nl2sql_indexer import NL2SQLIndexer
+    from .nl2sql_purger import NL2SQLPurger
+    from .sharepoint_graph_client import SharePointGraphClient
+    from .sharepoint_indexer import SharePointIndexer
+    from .sharepoint_ingestion_config import SharePointConfig
+    from .sharepoint_purger import SharePointPurger
+
 __all__ = [
     "ImagesDeletedFilesPurger", "NL2SQLIndexer", "NL2SQLPurger",
     "SharePointIndexer", "SharePointGraphClient", "SharePointConfig",

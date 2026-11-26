@@ -53,3 +53,28 @@ def test_importing_runtime_does_not_initialize_workers_or_configuration():
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(("package", "module", "name"), [
+    ("jobs", "jobs.sharepoint_graph_client", "SharePointGraphClient"),
+    ("tools", "tools.blob", "BlobClient"),
+])
+def test_lazy_exports_support_attribute_and_direct_import(package, module, name):
+    code = (
+        "import importlib, sys, types\n"
+        f"package = importlib.import_module({package!r})\n"
+        f"assert {module!r} not in sys.modules\n"
+        "assert 'dependencies' not in sys.modules\n"
+        "dependencies = types.ModuleType('dependencies')\n"
+        "dependencies.get_config = lambda: {}\n"
+        "sys.modules['dependencies'] = dependencies\n"
+        f"from {package} import {name}\n"
+        f"assert {module!r} in sys.modules\n"
+        f"assert package.{name} is {name}\n"
+        f"assert {name} is importlib.import_module({module!r}).{name}\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
