@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **SharePoint subsite scope.** Resolve the drive and traversal site from the
+  requested subsite; stop if it cannot be found instead of using the parent site.
+
 ### Changed
 
 - **Unified contribution gates.** Consolidate engineering-asset validation with the
