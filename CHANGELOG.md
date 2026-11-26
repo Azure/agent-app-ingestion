@@ -1,5 +1,13 @@
 # Changelog
 
+## [v3.1.7] - 2026-11-26
+
+### Fixed
+
+- **Generated sanitizer test credentials.** Construct the fake Basic authorization
+  fixture at runtime without changing audit sanitization or runtime credentials.
+  No security alerts are dismissed by this release.
+
 ## [v3.1.6] - 2026-11-21
 
 ### Changed
