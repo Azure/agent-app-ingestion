@@ -1,9 +1,7 @@
 import logging
-import os
-import re
 from .base_chunker import BaseChunker
 from ..exceptions import UnsupportedFormatError
-from langchain_text_splitters import MarkdownTextSplitter, RecursiveCharacterTextSplitter, PythonCodeTextSplitter, RecursiveJsonSplitter
+from langchain_text_splitters import MarkdownTextSplitter, RecursiveCharacterTextSplitter, PythonCodeTextSplitter
 from dependencies import get_config
 
 app_config_client = get_config()
