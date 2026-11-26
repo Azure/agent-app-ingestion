@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v3.1.9] - 2026-11-26
+
 ### Changed
 
 - **Unified contribution gates.** Consolidate engineering-asset validation with the
@@ -11,7 +13,8 @@
 
 - **Updated protected quality toolchain.** Adopt mypy 2.4.1 and the reviewed,
   SHA-pinned GitHub Actions updates while preserving protected-base evaluation
-  and required same-workflow evidence. Pending protected-policy adoption on `main`.
+  and required same-workflow evidence. Adopted on `main` through a one-off,
+  maintainer-authorized protected-policy adoption.
 
 ## [v3.1.8] - 2026-11-26
 
