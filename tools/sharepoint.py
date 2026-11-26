@@ -199,11 +199,12 @@ class SharePointMetadataStreamer:
         if sub_site_name:
             # If a sub-site name is provided, retrieve the sub-site ID
             self.sub_site_id = self._get_sub_site(self.site_id, sub_site_name)
-            if not self.site_id:
+            if not self.sub_site_id:
                 logging.error("[sharepoint_files_reader] Failed to retrieve sub-site ID")
                 return None, None
             
-            logging.info(f"[sharepoint_files_reader] Retrieved sub-site ID: {self.site_id}")
+            logging.info(f"[sharepoint_files_reader] Retrieved sub-site ID: {self.sub_site_id}")
+            self.site_id = self.sub_site_id
 
         self.drive_id = self._get_drive_id(self.site_id, drive_name=drive_name)
         if not self.drive_id:
