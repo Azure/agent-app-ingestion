@@ -1735,7 +1735,7 @@
   },
   "toolchain": {
     "ruff": "0.16.5",
-    "mypy": "2.3.1",
+    "mypy": "2.4.1",
     "import-linter": "2.14",
     "grimp": "3.16"
   },
