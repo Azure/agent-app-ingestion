@@ -2,11 +2,32 @@
 
 import asyncio
 import importlib
+import inspect
 from pathlib import Path
 import subprocess
 import sys
 
 import pytest
+
+
+def test_scheduler_protocol_preserves_signatures_and_stub_behavior():
+    from jobs.runtime import Scheduler
+
+    class StubScheduler(Scheduler):
+        pass
+
+    scheduler = StubScheduler()
+    methods = {
+        "add_job": ("(self, func: 'JobCallable', **kwargs: 'object') -> 'object'", (lambda: None,)),
+        "get_job": ("(self, job_id: 'str') -> 'ScheduledJob | None'", ("job",)),
+        "remove_job": ("(self, job_id: 'str') -> 'None'", ("job",)),
+        "reschedule_job": ("(self, job_id: 'str', **kwargs: 'object') -> 'object'", ("job",)),
+    }
+    for name, (signature, args) in methods.items():
+        method = getattr(Scheduler, name)
+        assert str(inspect.signature(method)) == signature
+        assert method.__doc__
+        assert getattr(scheduler, name)(*args) is None
 
 
 @pytest.mark.asyncio
