@@ -53,5 +53,5 @@ azure-monitor-opentelemetry-exporter
 # Keep OpenTelemetry instrumentation aligned with the azure-monitor-opentelemetry
 # distro, which requires >=0.64b0,<0.65.0. Pinning 0.65b0 forces opentelemetry-sdk
 # 1.44 and makes pip backtrack to an exporter that fails to import at runtime.
-opentelemetry-instrumentation-httpx>=0.64b0,<0.65.0
+opentelemetry-instrumentation-httpx>=0.66b2,<0.67.0
 opentelemetry-instrumentation-fastapi
