@@ -652,6 +652,7 @@ class BlobStorageDocumentIndexer:
 
             # Excel row-wise: stage docs in Blob to reduce memory pressure (optional design choice).
             _timings: Dict[str, Any] = {"downloadSec": _download_secs}
+            _total_cost = 0.0
             if self._should_stage_excel_rowwise(data):
                 _t_stage = time.monotonic()
                 total_chunks_uploaded = await self._replace_parent_docs_via_staging(
@@ -737,24 +738,21 @@ class BlobStorageDocumentIndexer:
 
             # Build cost estimate (only for non-staged path where we have metrics)
             _cost_estimate = None
-            try:
-                if _total_cost > 0:
-                    _cost_estimate = {
-                        "analysisService": _analysis_svc,
-                        "pagesAnalyzed": _pages,
-                        "analysisCost": _analysis_cost,
-                        "embeddingCalls": _embed_calls,
-                        "embeddingTokens": _embed_tokens,
-                        "embeddingCost": _embed_cost,
-                    }
-                    if _compl_calls > 0:
-                        _cost_estimate["completionCalls"] = _compl_calls
-                        _cost_estimate["completionInputTokens"] = _compl_in_tokens
-                        _cost_estimate["completionOutputTokens"] = _compl_out_tokens
-                        _cost_estimate["completionCost"] = _compl_cost
-                    _cost_estimate["totalCost"] = _total_cost
-            except NameError:
-                pass
+            if _total_cost > 0:
+                _cost_estimate = {
+                    "analysisService": _analysis_svc,
+                    "pagesAnalyzed": _pages,
+                    "analysisCost": _analysis_cost,
+                    "embeddingCalls": _embed_calls,
+                    "embeddingTokens": _embed_tokens,
+                    "embeddingCost": _embed_cost,
+                }
+                if _compl_calls > 0:
+                    _cost_estimate["completionCalls"] = _compl_calls
+                    _cost_estimate["completionInputTokens"] = _compl_in_tokens
+                    _cost_estimate["completionOutputTokens"] = _compl_out_tokens
+                    _cost_estimate["completionCost"] = _compl_cost
+                _cost_estimate["totalCost"] = _total_cost
 
             _history = per_file_log.get("runHistory", [])
             _run_entry: Dict[str, Any] = {"runId": run_id, "status": "success", "startedAt": per_file_log.get("startedAt"), "finishedAt": _finished, "chunks": total_chunks_uploaded, "timings": _timings}

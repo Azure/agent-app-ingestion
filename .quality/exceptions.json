@@ -352,7 +352,7 @@
       "id": "blob-document-failure",
       "module_id": "jobs.blob_storage_indexer",
       "symbol": "BlobStorageDocumentIndexer._process_one",
-      "handler_fingerprint": "704db0d136d1d67023b85d69748b6b6b80cae39d844b6e6b7feb5084f83244bc",
+      "handler_fingerprint": "6d5251dade55c52e606f4969ce7ad6ce84cebcca896ab95dcca26be4f76427eb",
       "caught_types": ["Exception"],
       "boundary": "Existing per-Blob failed-document result and retry/block tracking",
       "reason": "A failed metadata/read/chunk/index operation must become an explicit error record consumed by run aggregation, preserving retry/block history and allowing independent files to proceed. ACL acquisition errors now reach this boundary instead of becoming empty security fields. No failed file is counted as indexed; temporary-file cleanup no longer replaces early metadata failures.",
