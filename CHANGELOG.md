@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v3.1.10] - 2026-11-27
+
 ### Fixed
 
 - **Blob cost-estimation failures.** Preserve per-document failure reporting
