@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- **Blob cost-estimation failures.** Preserve per-document failure reporting
+  for unexpected name errors instead of silently reporting success; staged
+  documents continue without cost estimates.
+
 - **SharePoint subsite scope.** Resolve the drive and traversal site from the
   requested subsite; stop if it cannot be found instead of using the parent site.
 
