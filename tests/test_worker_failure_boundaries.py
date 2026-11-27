@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 import asyncio
+import builtins
+import copy
 import importlib.util
 from pathlib import Path
 import sys
@@ -106,6 +108,95 @@ async def test_blob_metadata_failure_cannot_become_empty_acl(worker_module, monk
     blob.download_blob.assert_not_awaited()
     assert worker._write_file_log.await_args.args[2]["status"] == "error"
     assert "private-metadata" not in caplog.text + str(result)
+
+
+def _blob_cost_worker(worker_module, monkeypatch, *, staged, pages):
+    module = worker_module("blob_storage_indexer")
+    worker = object.__new__(module.BlobStorageDocumentIndexer)
+    worker.cfg = module.BlobIndexerConfig(storage_account_name="storage", source_container="source")
+    worker._app = SimpleNamespace(get=lambda key, default=None: default)
+    worker._ensure_clients = AsyncMock()
+    worker._read_file_log = AsyncMock(return_value=None)
+    logs = []
+
+    async def write_log(container, key, log):
+        logs.append(copy.deepcopy(log))
+
+    worker._write_file_log = AsyncMock(side_effect=write_log)
+    worker._log_event = lambda *args, **kwargs: None
+    worker._get_container_rbac_scope = lambda: ""
+    blob = SimpleNamespace(
+        get_blob_properties=AsyncMock(return_value=SimpleNamespace(size=1, metadata={})),
+        download_blob=AsyncMock(return_value=SimpleNamespace(readall=AsyncMock(return_value=b"x"))),
+    )
+    worker._blob_service = SimpleNamespace(get_container_client=lambda name: SimpleNamespace(
+        get_blob_client=lambda name: blob,
+    ))
+    worker._should_stage_excel_rowwise = lambda data: staged
+    worker._replace_parent_docs_via_staging = AsyncMock(return_value=1)
+    worker._delete_parent_docs = AsyncMock()
+    worker._upload_docs_batch = AsyncMock(return_value=1)
+    worker._to_search_doc = lambda *args, **kwargs: {"id": "chunk"}
+    monkeypatch.setattr(module, "_check_memory_capacity", lambda **kwargs: None)
+    chunker = SimpleNamespace(
+        aoai_client=SimpleNamespace(),
+        _total_pages_analyzed=pages,
+        get_chunks=lambda: [{}],
+    )
+    monkeypatch.setattr(module, "ChunkerFactory", lambda: SimpleNamespace(get_chunker=lambda data: chunker))
+    return module, worker, logs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("staged", "pages", "expected_cost"), [
+    (True, 1, None),
+    (False, 0, None),
+    (False, 2, 0.02),
+])
+async def test_blob_cost_estimates_follow_processing_path(worker_module, monkeypatch, staged, pages, expected_cost):
+    _, worker, logs = _blob_cost_worker(worker_module, monkeypatch, staged=staged, pages=pages)
+    result = await worker._process_one("document.xlsx", datetime.now(timezone.utc), "text/plain", "run")
+    assert result == {"status": "success", "chunks": 1}
+    assert logs[-1]["status"] == "success"
+    estimate = logs[-1].get("costEstimate")
+    assert (estimate["totalCost"] if estimate else None) == expected_cost
+    assert logs[-1]["runHistory"][0].get("costEstimate") == estimate
+    assert worker._replace_parent_docs_via_staging.await_count == int(staged)
+    assert worker._upload_docs_batch.await_count == int(not staged)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["cost", "upload"])
+async def test_blob_nameerror_is_a_per_document_failure(worker_module, monkeypatch, caplog, failure_point):
+    module, worker, logs = _blob_cost_worker(worker_module, monkeypatch, staged=False, pages=2)
+    if failure_point == "cost":
+        calls = 0
+
+        class InvalidTotal:
+            def __gt__(self, other):
+                raise NameError("private-cost-defect")
+
+        def faulty_round(value, digits):
+            nonlocal calls
+            if digits == 4:
+                calls += 1
+                if calls == 4:
+                    return InvalidTotal()
+            return builtins.round(value, digits)
+
+        monkeypatch.setattr(module, "round", faulty_round, raising=False)
+    else:
+        worker._upload_docs_batch.side_effect = [NameError("private-upload-defect"), 1]
+
+    failed = await worker._process_one("bad.txt", datetime.now(timezone.utc), "text/plain", "run")
+    succeeded = await worker._process_one("good.txt", datetime.now(timezone.utc), "text/plain", "run")
+    assert failed == {"status": "error", "error": "Document processing failed (NameError)."}
+    assert succeeded == {"status": "success", "chunks": 1}
+    assert logs[1]["status"] == "error"
+    assert logs[1]["processingAttempts"] == 1
+    assert logs[1]["runHistory"][0]["error"] == failed["error"]
+    assert logs[-1]["status"] == "success"
+    assert "private-" not in caplog.text + str(failed)
 
 
 @pytest.mark.asyncio

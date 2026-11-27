@@ -16,7 +16,6 @@ from tools import AISearchClient
 
 # Elevated-read header – bypasses permission filtering for service-side queries.
 _ELEVATED_HEADERS = {"x-ms-enable-elevated-read": "true"}
-_ELEVATED_API_VERSION = "2025-11-01-preview"
 
 
 @dataclass
@@ -203,6 +202,7 @@ class NL2SQLPurger:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             logging.warning("[nl2sql-purger] Optional log container unavailable (%s)", type(exc).__name__)

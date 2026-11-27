@@ -29,10 +29,17 @@ class ScheduledJob(Protocol):
 class Scheduler(Protocol):
     timezone: tzinfo
 
-    def add_job(self, func: JobCallable, **kwargs: object) -> object: ...
-    def get_job(self, job_id: str) -> ScheduledJob | None: ...
-    def remove_job(self, job_id: str) -> None: ...
-    def reschedule_job(self, job_id: str, **kwargs: object) -> object: ...
+    def add_job(self, func: JobCallable, **kwargs: object) -> object:
+        """Register a callable using the supplied scheduler options."""
+
+    def get_job(self, job_id: str) -> ScheduledJob | None:
+        """Find a scheduled job by ID, or return None if it is absent."""
+
+    def remove_job(self, job_id: str) -> None:
+        """Remove the scheduled job identified by ID."""
+
+    def reschedule_job(self, job_id: str, **kwargs: object) -> object:
+        """Update the schedule of a job using the supplied options."""
 
 
 _scheduler: Scheduler | None = None

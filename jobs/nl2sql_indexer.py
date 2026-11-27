@@ -379,6 +379,7 @@ class NL2SQLIndexer:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError:
             logging.warning("[nl2sql-indexer] Could not ensure job-log container; primary indexing will still be attempted.")

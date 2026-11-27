@@ -1085,6 +1085,7 @@ class SharePointIndexer:
             cc = self._blob_service.get_container_client(self.cfg.jobs_log_container)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             logging.warning("[%s] Log container unavailable (%s)", self.cfg.indexer_name, type(exc).__name__)
@@ -1563,10 +1564,6 @@ class SharePointIndexer:
                     "blockedReason": existing_log.get("blockedReason"),
                 }
                 file_log["listType"] = list_type
-
-                chunks_for_item = 0
-                body_uploaded = False
-                item_had_candidate = False  # whether body or any attachment needed reindex
 
                 try:
                     async def _do() -> Dict[str, Any]:

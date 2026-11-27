@@ -1,5 +1,4 @@
 import logging
-import os
 
 from .chunkers.doc_analysis_chunker import DocAnalysisChunker
 from .chunkers.multimodal_chunker import MultimodalChunker

@@ -31,6 +31,7 @@ def _load_extractor():
         "tools.credentials": {"get_azure_client_id": lambda *a, **k: None},
         "chunking": {"DocumentChunker": object},
         "chunking.chunker_factory": {"ChunkerFactory": object},
+        "telemetry": {"audit": types.SimpleNamespace()},
         "utils": {},
         "utils.file_utils": {"_safe_delete": lambda *a, **k: None},
     }

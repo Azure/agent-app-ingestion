@@ -1,5 +1,16 @@
 # Changelog
 
+## [v3.1.10] - 2026-11-27
+
+### Fixed
+
+- **Blob cost-estimation failures.** Preserve per-document failure reporting
+  for unexpected name errors instead of silently reporting success; staged
+  documents continue without cost estimates.
+
+- **SharePoint subsite scope.** Resolve the drive and traversal site from the
+  requested subsite; stop if it cannot be found instead of using the parent site.
+
 ## [v3.1.9] - 2026-11-26
 
 ### Changed

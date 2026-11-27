@@ -25,7 +25,6 @@ import tempfile
 
 from dependencies import get_config
 from tools.credentials import get_azure_client_id
-from chunking import DocumentChunker
 from chunking.chunker_factory import ChunkerFactory
 from utils.file_utils import _safe_delete
 from telemetry import audit
@@ -653,6 +652,7 @@ class BlobStorageDocumentIndexer:
 
             # Excel row-wise: stage docs in Blob to reduce memory pressure (optional design choice).
             _timings: Dict[str, Any] = {"downloadSec": _download_secs}
+            _total_cost = 0.0
             if self._should_stage_excel_rowwise(data):
                 _t_stage = time.monotonic()
                 total_chunks_uploaded = await self._replace_parent_docs_via_staging(
@@ -738,24 +738,21 @@ class BlobStorageDocumentIndexer:
 
             # Build cost estimate (only for non-staged path where we have metrics)
             _cost_estimate = None
-            try:
-                if _total_cost > 0:
-                    _cost_estimate = {
-                        "analysisService": _analysis_svc,
-                        "pagesAnalyzed": _pages,
-                        "analysisCost": _analysis_cost,
-                        "embeddingCalls": _embed_calls,
-                        "embeddingTokens": _embed_tokens,
-                        "embeddingCost": _embed_cost,
-                    }
-                    if _compl_calls > 0:
-                        _cost_estimate["completionCalls"] = _compl_calls
-                        _cost_estimate["completionInputTokens"] = _compl_in_tokens
-                        _cost_estimate["completionOutputTokens"] = _compl_out_tokens
-                        _cost_estimate["completionCost"] = _compl_cost
-                    _cost_estimate["totalCost"] = _total_cost
-            except NameError:
-                pass
+            if _total_cost > 0:
+                _cost_estimate = {
+                    "analysisService": _analysis_svc,
+                    "pagesAnalyzed": _pages,
+                    "analysisCost": _analysis_cost,
+                    "embeddingCalls": _embed_calls,
+                    "embeddingTokens": _embed_tokens,
+                    "embeddingCost": _embed_cost,
+                }
+                if _compl_calls > 0:
+                    _cost_estimate["completionCalls"] = _compl_calls
+                    _cost_estimate["completionInputTokens"] = _compl_in_tokens
+                    _cost_estimate["completionOutputTokens"] = _compl_out_tokens
+                    _cost_estimate["completionCost"] = _compl_cost
+                _cost_estimate["totalCost"] = _total_cost
 
             _history = per_file_log.get("runHistory", [])
             _run_entry: Dict[str, Any] = {"runId": run_id, "status": "success", "startedAt": per_file_log.get("startedAt"), "finishedAt": _finished, "chunks": total_chunks_uploaded, "timings": _timings}
@@ -1363,6 +1360,7 @@ class BlobStorageDocumentIndexer:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             if name != self.cfg.jobs_log_container:
@@ -1455,6 +1453,7 @@ class BlobStorageDocumentIndexer:
             if isinstance(parsed, list):
                 return [str(x).strip() for x in parsed if str(x).strip()]
         except json.JSONDecodeError:
+            # The value may use Python-literal or delimiter syntax instead.
             pass
         # Try Python literal (e.g., "['a', 'b']")
         try:
@@ -1462,6 +1461,7 @@ class BlobStorageDocumentIndexer:
             if isinstance(lit, list):
                 return [str(x).strip() for x in lit if str(x).strip()]
         except (ValueError, SyntaxError):
+            # Fall through to the delimiter-based format.
             pass
         # Fallback: strip surrounding brackets, split on comma or semicolon
         s = raw_val.strip()
@@ -1902,6 +1902,7 @@ class BlobStorageDeletedItemsCleaner:
             cc = self._blob_service.get_container_client(name)
             await cc.create_container()
         except ResourceExistsError:
+            # Existing log containers are valid for repeated runs.
             pass
         except AzureError as exc:
             logging.warning("[blob-storage-purger] Log container unavailable (%s)", type(exc).__name__)

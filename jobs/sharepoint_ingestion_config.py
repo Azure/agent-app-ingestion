@@ -3,7 +3,7 @@ import hashlib
 import logging
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Iterable, List, Optional
 
 from dependencies import get_config
 
@@ -11,10 +11,6 @@ LOG_SCOPE = "[sp-ingest]"
 
 LIST_TYPE_DOCUMENT_LIBRARY = "documentLibrary"
 LIST_TYPE_GENERIC_LIST = "genericList"
-_VALID_LIST_TYPES = {
-    LIST_TYPE_DOCUMENT_LIBRARY.lower(),
-    LIST_TYPE_GENERIC_LIST.lower(),
-}
 
 
 def _get_config_str(name: str) -> str:
